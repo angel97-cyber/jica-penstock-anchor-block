@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HydroBlock Pro | JICA Anchor Block stability checker</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation stepper -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-logo">
+                    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div class="brand-name">
+                    <h1>HydroBlock</h1>
+                    <span>AB DESIGNER PRO</span>
+                </div>
+            </div>
+            
+            <div class="wizard-stepper">
+                <h3>DESIGN WORKFLOW</h3>
+                <div class="step-list">
+                    <div class="step-item active" data-step="1" id="step-nav-1">
+                        <div class="step-number">1</div>
+                        <div class="step-details">
+                            <span class="step-title">Plan View (XY)</span>
+                            <small class="step-desc">Block & Pipe Plan</small>
+                        </div>
+                    </div>
+                    <div class="step-item" data-step="2" id="step-nav-2">
+                        <div class="step-number">2</div>
+                        <div class="step-details">
+                            <span class="step-title">Profile View (XZ)</span>
+                            <small class="step-desc">Longitudinal Section</small>
+                        </div>
+                    </div>
+                    <div class="step-item" data-step="3" id="step-nav-3">
+                        <div class="step-number">3</div>
+                        <div class="step-details">
+                            <span class="step-title">Cross Section (YZ)</span>
+                            <small class="step-desc">Transverse Shape & Pipe</small>
+                        </div>
+                    </div>
+                    <div class="step-item" data-step="4" id="step-nav-4">
+                        <div class="step-number">4</div>
+                        <div class="step-details">
+                            <span class="step-title">Stability Analysis</span>
+                            <small class="step-desc">Results & Animations</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Project Manager -->
+            <div class="presets-section" style="margin-top: auto; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                <h3>PROJECT MANAGER</h3>
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label>Active Project Name</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="project-name-input" value="Nepal HPP - AB 1" style="padding: 6px 10px; font-size: 12px; height: 32px; background: rgba(10,13,22,0.9); border: 1.5px solid rgba(0,242,254,0.35); border-radius:6px; color:#fff;">
+                        <button class="btn btn-primary" id="btn-save-project" style="padding: 0 12px; font-size: 11px; height: 32px;">Save</button>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label>Saved Projects List</label>
+                    <select id="project-load-select" style="padding: 6px 10px; font-size: 12px; height: 32px; background: rgba(10,13,22,0.9); border: 1.5px solid rgba(0,242,254,0.35); border-radius:6px; color:#fff;">
+                        <option value="">-- Select to Load --</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+                    <button class="btn btn-outline btn-sm btn-block" id="btn-export-project" style="font-size: 10px; padding: 6px 4px;">Export JSON</button>
+                    <button class="btn btn-outline btn-sm btn-block" id="btn-import-project-trigger" style="font-size: 10px; padding: 6px 4px;">Import JSON</button>
+                    <input type="file" id="btn-import-project-file" style="display: none;" accept=".json">
+                </div>
+            </div>
+
+            <!-- Sidebar Footer -->
+            <div class="sidebar-footer">
+                <button class="btn btn-primary btn-block" id="btn-print-report" style="display: none;">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                    Generate Report
+                </button>
+                <div class="footer-credit">JICA Stability Engine (Penstock AB Standard)</div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="dashboard-header">
+                <div class="header-title">
+                    <h2 id="wizard-title-text">Step 1: Plan View Coordinate Input (XY Plane)</h2>
+                    <p id="current-preset-label">Coordinates loaded for JICA AB No. 1-3</p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <button class="btn btn-outline btn-sm" id="btn-quick-save" style="border-color: var(--accent-cyan); color: var(--accent-cyan); display: flex; align-items: center; gap: 6px; padding: 8px 12px; height: 38px;">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                        <span>Quick Save</span>
+                    </button>
+                    <div class="header-status-card pass" id="overall-status-card" style="display: none;">
+                        <span class="status-icon">✓</span>
+                        <span class="status-text">PASSED</span>
+                    </div>
+                    <div class="wizard-buttons">
+                        <button class="btn btn-outline" id="btn-wizard-prev" disabled>Back</button>
+                        <button class="btn btn-primary" id="btn-wizard-next">Next Step</button>
+                    </div>
+                </div>
+            </header>
+
+            <div class="tab-content-container" style="padding: 24px; overflow: hidden; height: calc(100vh - 80px);">
+                <div class="wizard-grid" style="display: grid; grid-template-columns: 1.15fr 1fr; gap: 24px; height: 100%; overflow: hidden;">
+                    
+                    <!-- Left inputs column -->
+                    <div class="left-inputs-column" style="overflow-y: auto; height: 100%; padding-right: 8px;">
+                        
+                        <!-- STEP 1: Plan View XY -->
+                        <div class="wizard-pane active" id="pane-step-1">
+                            <div class="card-inputs">
+                                <div class="card-header">
+                                    <h3>X-Y Coordinate Grid (Concrete Block Plan)</h3>
+                                    <button class="btn btn-outline btn-sm" id="btn-add-xy-row">+ Add Point</button>
+                                </div>
+                                <div class="table-container-form">
+                                    <table class="coord-grid-table" id="table-xy-coords">
+                                        <thead>
+                                            <tr>
+                                                <th>Vertex</th>
+                                                <th>X [m]</th>
+                                                <th>Y [m]</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
+                                
+                                <div class="card-header border-top">
+                                    <h3>Pipe centerline coordinate Grid (XY Plan)</h3>
+                                </div>
+                                <div class="table-container-form">
+                                    <table class="coord-grid-table" id="table-xy-pipe">
+                                        <thead>
+                                            <tr>
+                                                <th>Point</th>
+                                                <th>X [m]</th>
+                                                <th>Y [m]</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr><td>Upstream Start</td><td><input type="number" step="0.001" id="pipe-xy-x1" value="0.0"></td><td><input type="number" step="0.001" id="pipe-xy-y1" value="2.0"></td></tr>
+                                            <tr><td>Bend IP</td><td><input type="number" step="0.001" id="pipe-xy-x2" value="3.0"></td><td><input type="number" step="0.001" id="pipe-xy-y2" value="2.0"></td></tr>
+                                            <tr><td>Downstream End</td><td><input type="number" step="0.001" id="pipe-xy-x3" value="6.17"></td><td><input type="number" step="0.001" id="pipe-xy-y3" value="2.0"></td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div class="card-header border-top">
+                                    <h3>Section Cut Path Coordinates</h3>
+                                    <div style="display: flex; gap: 8px;">
+                                        <button class="btn btn-outline btn-sm" id="btn-follow-pipe">Follow Path of Pipe</button>
+                                        <button class="btn btn-outline btn-sm" id="btn-add-cut-row">+ Add Point</button>
+                                    </div>
+                                </div>
+                                <div class="table-container-form">
+                                    <table class="coord-grid-table" id="table-xy-cut">
+                                        <thead>
+                                            <tr>
+                                                <th>Point</th>
+                                                <th>X [m]</th>
+                                                <th>Y [m]</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- STEP 2: Profile View XZ -->
+                        <div class="wizard-pane" id="pane-step-2">
+                            <div class="card-inputs">
+                                <div class="card-header">
+                                    <h3>X-Z Coordinate Grid (Concrete Longitudinal profile)</h3>
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <span class="badge badge-accent" id="lbl-fixed-length">Fixed Cut Length: 6.17m</span>
+                                        <button class="btn btn-outline btn-sm" id="btn-add-xz-row">+ Add Point</button>
+                                    </div>
+                                </div>
+                                <div class="table-container-form">
+                                    <table class="coord-grid-table" id="table-xz-coords">
+                                        <thead>
+                                            <tr>
+                                                <th>Vertex</th>
+                                                <th>X [m]</th>
+                                                <th>Z [m]</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
+
+                                <div class="card-header border-top">
+                                    <h3>Pipe Profile Centerline (XZ)</h3>
+                                </div>
+                                <div class="table-container-form">
+                                    <table class="coord-grid-table" id="table-xz-pipe">
+                                        <thead>
+                                            <tr>
+                                                <th>Point</th>
+                                                <th>X [m]</th>
+                                                <th>Z [m]</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr><td>Upstream Start</td><td><input type="number" step="0.001" id="pipe-xz-x1" value="0.00"></td><td><input type="number" step="0.001" id="pipe-xz-z1" value="3.533"></td></tr>
+                                            <tr><td>Bend IP</td><td><input type="number" step="0.001" id="pipe-xz-x2" value="3.00"></td><td><input type="number" step="0.001" id="pipe-xz-z2" value="3.000"></td></tr>
+                                            <tr><td>Downstream End</td><td><input type="number" step="0.001" id="pipe-xz-x3" value="6.17"></td><td><input type="number" step="0.001" id="pipe-xz-z3" value="3.000"></td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div class="card-header border-top">
+                                    <h3>Ground Level Coordinates (XZ Profile)</h3>
+                                    <button class="btn btn-outline btn-sm" id="btn-add-ground-row">+ Add Point</button>
+                                </div>
+                                <div class="table-container-form">
+                                    <table class="coord-grid-table" id="table-xz-ground">
+                                        <thead>
+                                            <tr>
+                                                <th>Point</th>
+                                                <th>X [m]</th>
+                                                <th>Z [m]</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
+
+                                <div class="card-header border-top">
+                                    <h3>Pipe Layout & Structural Properties</h3>
+                                </div>
+                                <div class="form-segment-grid">
+                                    <div class="form-group-row">
+                                        <div class="form-group">
+                                            <label>Inside Diam. of Penstock D [m]</label>
+                                            <input type="number" step="0.001" id="param-D" value="2.0">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Density of steel &gamma;_s [t/m³]</label>
+                                            <input type="number" step="0.01" id="param-rs" value="7.85">
+                                        </div>
+                                    </div>
+                                    <div class="form-group-row">
+                                        <div class="form-group">
+                                            <label>Thickness upstream shell t [m]</label>
+                                            <input type="number" step="0.0001" id="param-t" value="0.009">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Thickness downstream shell t' [m]</label>
+                                            <input type="number" step="0.0001" id="param-t_prime" value="0.009">
+                                        </div>
+                                    </div>
+                                    <div class="form-group-row">
+                                        <div class="form-group">
+                                            <label>Pipe length to upstream exp joint L [m]</label>
+                                            <input type="number" step="0.01" id="param-L" value="5.188">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Pipe length to downstream exp joint L' [m]</label>
+                                            <input type="number" step="0.01" id="param-L_prime" value="0.0">
+                                        </div>
+                                    </div>
+                                    <div class="form-group-row">
+                                        <div class="form-group">
+                                            <label>Pipe length to upstream saddle l [m]</label>
+                                            <input type="number" step="0.01" id="param-l" value="7.188">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Pipe length to downstream saddle l' [m]</label>
+                                            <input type="number" step="0.01" id="param-l_prime" value="0.0">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- STEP 3: Section View YZ -->
+                        <div class="wizard-pane" id="pane-step-3">
+                            <div class="card-inputs">
+                                <div class="card-header">
+                                    <h3>Y-Z Coordinate Grid (Cross Section)</h3>
+                                    <button class="btn btn-outline btn-sm" id="btn-add-yz-row">+ Add Point</button>
+                                </div>
+                                <div class="table-container-form">
+                                    <table class="coord-grid-table" id="table-yz-coords">
+                                        <thead>
+                                            <tr>
+                                                <th>Vertex</th>
+                                                <th>Y [m]</th>
+                                                <th>Z [m]</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
+
+                                <div class="card-header border-top">
+                                    <h3>Pipe Center & Flow Parameters</h3>
+                                </div>
+                                <div class="form-segment-grid">
+                                    <div class="form-group-row">
+                                        <div class="form-group">
+                                            <label>Pipe Center Y [m]</label>
+                                            <input type="number" step="0.01" id="pipe-center-y" value="2.0">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Pipe Center Z [m]</label>
+                                            <input type="number" step="0.01" id="pipe-center-z" value="3.0">
+                                        </div>
+                                    </div>
+                                    <div class="form-group-row">
+                                        <div class="form-group">
+                                            <label>Design head at IP (H) [m]</label>
+                                            <input type="number" step="0.1" id="param-H" value="15.5">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Maximum discharge Q [m³/s]</label>
+                                            <input type="number" step="0.1" id="param-Q" value="9.6">
+                                        </div>
+                                    </div>
+                                    <div class="form-group-row">
+                                        <div class="form-group">
+                                            <label>Design head upstream joint He [m]</label>
+                                            <input type="number" step="0.1" id="param-He" value="17.5">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Design head downstream joint He' [m]</label>
+                                            <input type="number" step="0.1" id="param-He_prime" value="0.0">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card-header border-top">
+                                    <h3>Friction, Geotech & Material Properties</h3>
+                                </div>
+                                <div class="form-segment-grid">
+                                    <div class="form-group-row">
+                                        <div class="form-group">
+                                            <label>Friction base-foundation &lambda;</label>
+                                            <input type="number" step="0.01" id="param-lambda" value="0.65">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Allowable Bearing qa [t/m²]</label>
+                                            <input type="number" step="1.0" id="param-qa" value="100.0">
+                                        </div>
+                                    </div>
+                                    <div class="form-group-row">
+                                        <div class="form-group">
+                                            <label>Seismic Coeff. Kh</label>
+                                            <input type="number" step="0.01" id="param-Kh" value="0.15">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Concrete weight w_c [t/m³]</label>
+                                            <input type="number" step="0.1" id="param-wc" value="2.3">
+                                        </div>
+                                    </div>
+                                    <div class="form-group-row">
+                                        <div class="form-group">
+                                            <label>Friction pipe-saddle c</label>
+                                            <input type="number" step="0.01" id="param-c" value="0.25">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Friction water-steel f</label>
+                                            <input type="number" step="0.001" id="param-f" value="0.02">
+                                        </div>
+                                    </div>
+                                    <div class="form-group-row">
+                                        <div class="form-group">
+                                            <label>Joint friction coeff fe [t/m]</label>
+                                            <input type="number" step="0.1" id="param-fe" value="0.7">
+                                        </div>
+                                    </div>
+                                    <div class="form-group-toggle border-top">
+                                        <div class="toggle-card-simple">
+                                            <div class="toggle-labels">
+                                                <span>Buried Surcharge Cover</span>
+                                                <small>Enable soil surcharge weight</small>
+                                            </div>
+                                            <label class="switch">
+                                                <input type="checkbox" id="buried-condition-toggle">
+                                                <span class="slider round"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="form-group-toggle border-top" style="margin-top: 15px; padding-top: 15px;">
+                                        <div class="toggle-card-simple">
+                                            <div class="toggle-labels">
+                                                <span>Incorporate Structural Mitigation</span>
+                                                <small>Enable base shear keys & rock anchors</small>
+                                            </div>
+                                            <label class="switch">
+                                                <input type="checkbox" id="mitigation-toggle">
+                                                <span class="slider round"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div id="mitigation-inputs-panel" style="display: none; border: 1px dashed rgba(0, 242, 254, 0.3); border-radius: 8px; padding: 12px; margin-top: 10px; background: rgba(10, 25, 47, 0.3);">
+                                        <div class="form-group-row">
+                                            <div class="form-group">
+                                                <label>Concrete Shear Key Height (h_key) [m]</label>
+                                                <input type="number" step="0.05" id="mitigation-h-key" value="0.00">
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Number of Rock Anchors (N)</label>
+                                                <input type="number" step="1" id="mitigation-n-anchors" value="0">
+                                            </div>
+                                        </div>
+                                        <div class="form-group-row" style="margin-top: 8px;">
+                                            <div class="form-group">
+                                                <label>Anchor Bar Diameter [mm]</label>
+                                                <input type="number" step="1" id="mitigation-d-anchor" value="25">
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Steel Yield Strength f_y [MPa]</label>
+                                                <input type="number" step="5" id="mitigation-fy-anchor" value="415">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- STEP 4: Results & Animations -->
+                        <div class="wizard-pane" id="pane-step-4">
+                            <div class="dashboard-grid">
+                                <!-- visual simulator -->
+                                <div class="card card-visual">
+                                    <div class="card-header">
+                                        <h3>3D-Plane Safety Simulator & Animation</h3>
+                                        <div class="visual-toggles">
+                                            <button class="btn btn-outline btn-sm active" id="sim-btn-xz">X-Z Profile</button>
+                                            <button class="btn btn-outline btn-sm" id="sim-btn-yz">Y-Z Section</button>
+                                        </div>
+                                    </div>
+                                    <div class="visual-canvas-container">
+                                        <div class="failure-overlay" id="failure-animation-box">
+                                            <div class="sim-stage" id="sim-viewport"></div>
+                                        </div>
+                                        <div class="sim-controls">
+                                            <span class="sim-mode-indicator" id="sim-mode-text">X-Z Profile (Flow Plane)</span>
+                                            <div class="sim-legend" style="display: flex; width: 100%; align-items: center; justify-content: space-between;">
+                                                <div style="display: flex; gap: 16px;">
+                                                    <span class="legend-item"><span class="legend-dot cg"></span>CG</span>
+                                                    <span class="legend-item"><span class="legend-dot water"></span>Pipe & Flow</span>
+                                                    <span class="legend-item"><span class="legend-dot force"></span>Resultant Force</span>
+                                                </div>
+                                                <div id="sim-cg-label" style="font-size: 10px; font-weight: 700; color: var(--accent-cyan); letter-spacing: 0.5px;">CG: [X: 0.00m, Z: 0.00m]</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Safety Checklist -->
+                                <div class="card card-checklist">
+                                    <div class="card-header">
+                                        <h3>Stability Check Summary</h3>
+                                        <span class="badge" id="checklist-summary-badge">16/16 Checks Passed</span>
+                                    </div>
+                                    
+                                    <div class="results-quick-metrics">
+                                        <div class="quick-metric-card" id="metric-sliding">
+                                            <span class="val">9.46</span>
+                                            <span class="lbl">Sliding Fs (&gt;2.0)</span>
+                                        </div>
+                                        <div class="quick-metric-card" id="metric-overturning">
+                                            <span class="val">0.389m</span>
+                                            <span class="lbl">Eccentricity e (&lt;B/6)</span>
+                                        </div>
+                                        <div class="quick-metric-card" id="metric-bearing">
+                                            <span class="val">16.90</span>
+                                            <span class="lbl">Bearing &sigma;_max [t/m²]</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="checklist-container">
+                                        <div class="checklist-section">
+                                            <h4>X-Z Plane Checks (Flow Direction)</h4>
+                                            <div class="check-item-row" id="chk-xz-sliding">
+                                                <div class="chk-indicator ok">✓</div>
+                                                <div class="chk-info">
+                                                    <h5>Safety against Sliding</h5>
+                                                    <span class="chk-math">Min Fs = <span class="val">2.81</span> &ge; 1.2</span>
+                                                </div>
+                                                <span class="chk-status ok">OK</span>
+                                            </div>
+                                            <div class="check-item-row" id="chk-xz-overturning-fs">
+                                                <div class="chk-indicator ok">✓</div>
+                                                <div class="chk-info">
+                                                    <h5>Safety against Overturning</h5>
+                                                    <span class="chk-math">Min Fo = <span class="val">1.50</span> &ge; 1.2</span>
+                                                </div>
+                                                <span class="chk-status ok">OK</span>
+                                            </div>
+                                            <div class="check-item-row" id="chk-xz-eccentricity">
+                                                <div class="chk-indicator ok">✓</div>
+                                                <div class="chk-info">
+                                                    <h5>Overturning (Eccentricity)</h5>
+                                                    <span class="chk-math">Max e = <span class="val">0.628m</span> &lt; 1.083m</span>
+                                                </div>
+                                                <span class="chk-status ok">OK</span>
+                                            </div>
+                                            <div class="check-item-row" id="chk-xz-bearing">
+                                                <div class="chk-indicator ok">✓</div>
+                                                <div class="chk-info">
+                                                    <h5>Soil Bearing Pressure</h5>
+                                                    <span class="chk-math">Max &sigma; = <span class="val">16.90 t/m²</span> &lt; 100 t/m²</span>
+                                                </div>
+                                                <span class="chk-status ok">OK</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="checklist-section">
+                                            <h4>Y-Z Plane Checks (Perpendicular Direction)</h4>
+                                            <div class="check-item-row" id="chk-yz-sliding">
+                                                <div class="chk-indicator ok">✓</div>
+                                                <div class="chk-info">
+                                                    <h5>Safety against Sliding</h5>
+                                                    <span class="chk-math">Min Fs = <span class="val">2.41</span> &ge; 1.2</span>
+                                                </div>
+                                                <span class="chk-status ok">OK</span>
+                                            </div>
+                                            <div class="check-item-row" id="chk-yz-overturning-fs">
+                                                <div class="chk-indicator ok">✓</div>
+                                                <div class="chk-info">
+                                                    <h5>Safety against Overturning</h5>
+                                                    <span class="chk-math">Min Fo = <span class="val">1.50</span> &ge; 1.2</span>
+                                                </div>
+                                                <span class="chk-status ok">OK</span>
+                                            </div>
+                                            <div class="check-item-row" id="chk-yz-eccentricity">
+                                                <div class="chk-indicator ok">✓</div>
+                                                <div class="chk-info">
+                                                    <h5>Overturning (Eccentricity)</h5>
+                                                    <span class="chk-math">Max e = <span class="val">0.638m</span> &lt; 0.787m</span>
+                                                </div>
+                                                <span class="chk-status ok">OK</span>
+                                            </div>
+                                            <div class="check-item-row" id="chk-yz-bearing">
+                                                <div class="chk-indicator ok">✓</div>
+                                                <div class="chk-info">
+                                                    <h5>Soil Bearing Pressure</h5>
+                                                    <span class="chk-math">Max &sigma; = <span class="val">18.72 t/m²</span> &lt; 100 t/m²</span>
+                                                </div>
+                                                <span class="chk-status ok">OK</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Step-by-Step Case Calculations Card -->
+                            <div class="card card-calculation-step-by-step" style="margin-bottom: 24px;">
+                                <div class="card-header">
+                                    <h3 id="step-calc-case-header">Detailed Step-by-Step Calculations: Case-1 (-x EQ)</h3>
+                                    <span class="badge badge-accent">Interactive CAD verification</span>
+                                </div>
+                                <div class="step-calculation-body" id="detailed-calculation-report" style="padding: 24px; color: var(--text-secondary); line-height: 1.6;">
+                                    <!-- Rendered dynamically on selecting case rows -->
+                                </div>
+                            </div>
+                            
+                            <!-- Table breakdowns -->
+                            <div class="results-table-section border-top">
+                                <div class="results-tab-headers">
+                                    <button class="btn btn-outline active" id="btn-show-forces">Forces breakdown</button>
+                                    <button class="btn btn-outline" id="btn-show-combinations">All 16 Case details</button>
+                                </div>
+                                <div class="card card-table-results">
+                                    <div class="table-container" id="results-table-viewport"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                    
+                    <!-- Right side: Global Live Blueprint View (all 3 SVGs) -->
+                    <div class="card card-draw-preview" id="global-blueprints-card" style="height: 100%; display: flex; flex-direction: column; gap: 16px; padding: 16px; background-color: #060911; border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden;">
+                        <!-- View Toggles -->
+                        <div class="blueprint-toggles" style="display: flex; gap: 6px; flex-shrink: 0; background: rgba(10,15,30,0.6); padding: 4px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 4px;">
+                            <button class="btn btn-sm" id="btn-view-plan" style="flex: 1; font-size: 11px; padding: 6px 0; background: var(--accent-cyan); color: #000; font-weight: 600;">Plan (XY)</button>
+                            <button class="btn btn-outline btn-sm" id="btn-view-profile" style="flex: 1; font-size: 11px; padding: 6px 0;">Profile (XZ)</button>
+                            <button class="btn btn-outline btn-sm" id="btn-view-section" style="flex: 1; font-size: 11px; padding: 6px 0;">Section (YZ)</button>
+                            <button class="btn btn-outline btn-sm" id="btn-view-all" style="flex: 1; font-size: 11px; padding: 6px 0;">Show All</button>
+                        </div>
+                        
+                        <div style="flex: 1; display: flex; flex-direction: column; overflow-y: auto; gap: 16px; height: 100%;" id="blueprints-scroll-container">
+                            <div id="wrapper-plan-view" style="flex: 1; min-height: 0; display: flex; flex-direction: column; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px;">
+                                <div class="card-header" style="border-bottom: none; padding: 0 0 10px 0; flex-shrink: 0;">
+                                    <h3 style="font-size: 11px; font-weight: 700; color: #fff;">Plan Blueprint View (X-Y)</h3>
+                                </div>
+                                <div class="canvas-wrapper" id="plan-svg-viewport" style="flex: 1; min-height: 0; height: 100%;"></div>
+                            </div>
+                            <div id="wrapper-profile-view" style="flex: 1; min-height: 0; display: flex; flex-direction: column; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px;">
+                                <div class="card-header" style="border-bottom: none; padding: 0 0 10px 0; flex-shrink: 0;">
+                                    <h3 style="font-size: 11px; font-weight: 700; color: #fff;">Profile Blueprint View (X-Z)</h3>
+                                </div>
+                                <div class="canvas-wrapper" id="profile-svg-viewport" style="flex: 1; min-height: 0; height: 100%;"></div>
+                            </div>
+                            <div id="wrapper-section-view" style="flex: 1; min-height: 0; display: flex; flex-direction: column;">
+                                <div class="card-header" style="border-bottom: none; padding: 0 0 10px 0; flex-shrink: 0;">
+                                    <h3 style="font-size: 11px; font-weight: 700; color: #fff;">Section Blueprint View (Y-Z)</h3>
+                                </div>
+                                <div class="canvas-wrapper" id="section-svg-viewport" style="flex: 1; min-height: 0; height: 100%;"></div>
+                            </div>
+                        </div>
+                        <div class="error-banner-container" id="error-banner-global" style="flex-shrink: 0;"></div>
+                    </div>
+                    
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Print Report Template Modal -->
+    <div class="modal" id="print-report-modal">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h2>Generate Design & Verification Report</h2>
+                <button class="close-btn" id="close-report-modal">&times;</button>
+            </div>
+            <div class="modal-body print-preview-area" id="print-preview-content"></div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="btn-cancel-print">Cancel</button>
+                <button class="btn btn-primary" id="btn-confirm-print">Print / Save as PDF</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Isolated high-contrast print mount point -->
+    <div id="print-mount-point"></div>
+    
+    <script src="app.js"></script>
+</body>
+</html>
