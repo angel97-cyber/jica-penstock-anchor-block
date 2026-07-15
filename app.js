@@ -108,12 +108,13 @@ const state = {
         qa: 100.0,    // Allowable bearing capacity t/m²
         Kh: 0.15,     // Seismic coefficient
         
-        buriedCondition: false,
-        mitigation_active: false,
-        h_key: 0.0,
+        buriedCondition: true,
+        mitigation_active: true,
+        h_key: 0.40,
         n_anchors: 0,
         d_anchor: 25.0,
-        fy_anchor: 415.0
+        fy_anchor: 415.0,
+        bearing_increase_factor: 1.50
     }
 };
 
@@ -125,7 +126,8 @@ const presets = {
             B: 5.901, W: 5.000, H_ab: 4.992, B_yz: 4.719, wc: 2.3, rs: 7.85,
             D: 2.000, t: 0.009, t_prime: 0.009, L: 5.188, L_prime: 0.000, l: 7.188, l_prime: 0.000,
             H: 15.5, He: 17.5, He_prime: 0.0, Q: 9.6,
-            c: 0.25, f: 0.02, fe: 0.7, lambda: 0.65, qa: 100.0, Kh: 0.15, buriedCondition: false
+            c: 0.25, f: 0.02, fe: 0.7, lambda: 0.65, qa: 100.0, Kh: 0.15, 
+            buriedCondition: true, mitigation_active: true, h_key: 0.40, bearing_increase_factor: 1.50
         },
         coordinates: {
             xyCoords: [
@@ -171,7 +173,8 @@ const presets = {
             B: 5.901, W: 5.000, H_ab: 4.992, B_yz: 4.719, wc: 2.3, rs: 7.85,
             D: 2.000, t: 0.009, t_prime: 0.009, L: 5.070, L_prime: 5.564, l: 8.070, l_prime: 10.022,
             H: 18.75, He: 20.5, He_prime: 17.5, Q: 9.6,
-            c: 0.25, f: 0.02, fe: 0.7, lambda: 0.65, qa: 100.0, Kh: 0.15, buriedCondition: false
+            c: 0.25, f: 0.02, fe: 0.7, lambda: 0.65, qa: 100.0, Kh: 0.15, 
+            buriedCondition: true, mitigation_active: true, h_key: 0.40, bearing_increase_factor: 1.50
         },
         coordinates: {
             xyCoords: [
@@ -217,7 +220,8 @@ const presets = {
             B: 8.000, W: 6.000, H_ab: 6.000, B_yz: 5.500, wc: 2.3, rs: 7.85,
             D: 1.600, t: 0.016, t_prime: 0.014, L: 15.000, L_prime: 12.000, l: 10.000, l_prime: 8.000,
             H: 450.0, He: 460.0, He_prime: 440.0, Q: 14.5,
-            c: 0.25, f: 0.02, fe: 0.7, lambda: 0.55, qa: 250.0, Kh: 0.20, buriedCondition: true
+            c: 0.25, f: 0.02, fe: 0.7, lambda: 0.55, qa: 250.0, Kh: 0.20, 
+            buriedCondition: true, mitigation_active: true, h_key: 0.40, bearing_increase_factor: 1.50
         },
         coordinates: {
             xyCoords: [
@@ -568,6 +572,9 @@ function calculateStability() {
             const Fot = M_O > 0.001 ? Math.abs((M_R + M_R_anchors) / M_O) : 999.0;
             const overturningFSPass = Fot >= 1.2;
             
+            const eqLabelVal = eqSign < 0 ? '-x EQ' : '+x EQ';
+            const allowedBearing = eqLabelVal.includes('EQ') ? (p.qa * (p.bearing_increase_factor || 1.50)) : p.qa;
+            
             let sigma_max = Math.abs(totalV_clamped / A_base) * (1.0 + 6.0 * e / B_x);
             let isLiftOff = false;
             let bearingPass = true;
@@ -581,14 +588,14 @@ function calculateStability() {
             } else if (e > B_x / 6.0) {
                 sigma_max = (2.0 * Math.abs(totalV_clamped)) / (3.0 * (B_x / 2.0 - e) * p.W);
                 isLiftOff = true;
-                bearingPass = sigma_max < p.qa;
+                bearingPass = sigma_max < allowedBearing;
             } else {
-                bearingPass = sigma_max < p.qa;
+                bearingPass = sigma_max < allowedBearing;
             }
             
             state.results.cases.push({
                 caseName: c.name,
-                eqLabel: eqSign < 0 ? '-x EQ' : '+x EQ',
+                eqLabel: eqLabelVal,
                 plane: 'X-Z',
                 combination: c.eq,
                 totalV: totalV_clamped,
@@ -603,6 +610,7 @@ function calculateStability() {
                 overturningFSPass,
                 slidingPass,
                 bearingPass,
+                limit_qa: allowedBearing,
                 passed: eccentricityPass && overturningFSPass && slidingPass && bearingPass,
                 
                 // detailed components for Step 4 reporting
@@ -658,6 +666,9 @@ function calculateStability() {
             const Fot = M_O > 0.001 ? Math.abs((M_R + M_R_anchors) / M_O) : 999.0;
             const overturningFSPass = Fot >= 1.2;
             
+            const eqLabelVal = eqSign < 0 ? '-y EQ' : '+y EQ';
+            const allowedBearing = eqLabelVal.includes('EQ') ? (p.qa * (p.bearing_increase_factor || 1.50)) : p.qa;
+            
             let sigma_max = Math.abs(totalV_clamped / A_base) * (1.0 + 6.0 * e / B_y);
             let isLiftOff = false;
             let bearingPass = true;
@@ -671,14 +682,14 @@ function calculateStability() {
             } else if (e > B_y / 6.0) {
                 sigma_max = (2.0 * Math.abs(totalV_clamped)) / (3.0 * (B_y / 2.0 - e) * p.B);
                 isLiftOff = true;
-                bearingPass = sigma_max < p.qa;
+                bearingPass = sigma_max < allowedBearing;
             } else {
-                bearingPass = sigma_max < p.qa;
+                bearingPass = sigma_max < allowedBearing;
             }
             
             state.results.cases.push({
                 caseName: c.name,
-                eqLabel: eqSign < 0 ? '-y EQ' : '+y EQ',
+                eqLabel: eqLabelVal,
                 plane: 'Y-Z',
                 combination: c.eq,
                 totalV: totalV_clamped,
@@ -693,6 +704,7 @@ function calculateStability() {
                 overturningFSPass,
                 slidingPass,
                 bearingPass,
+                limit_qa: allowedBearing,
                 passed: eccentricityPass && overturningFSPass && slidingPass && bearingPass,
                 
                 momV: momV_clamped, momH, sumM, y_res, Rx, Ry, Rz, Tx, Ty, Tz
@@ -1348,7 +1360,10 @@ function renderDetailedCalculationCard() {
                             <td><strong>Bearing Stress (&sigma;_max)</strong></td>
                             <td>${c.isLiftOff ? `&sigma; = 2&Sigma;V / [3(B/2 - e) &times; ${c.plane === 'X-Z' ? 'W' : 'B'}] (Heel Lift-off)` : `&sigma; = (&Sigma;V/A_base) &times; (1 + 6e/B)`}</td>
                             <td class="num">${fNum(c.sigma, 2)} t/m²</td>
-                            <td class="num">&lt; ${p.qa.toFixed(1)} t/m²</td>
+                            <td class="num">
+                                &lt; ${c.limit_qa.toFixed(2)} t/m²
+                                ${c.eqLabel.includes('EQ') ? `<br><small style="font-size:10px; color:var(--text-secondary);">(qa_allow = qa &times; ${p.bearing_increase_factor || 1.50} = ${c.limit_qa.toFixed(2)})</small>` : ''}
+                            </td>
                             <td style="color:${c.bearingPass ? 'var(--accent-green)':'var(--accent-red)'}; font-weight:bold;">${c.bearingPass ? 'PASS':'FAIL'}</td>
                         </tr>
                     </tbody>
@@ -2084,7 +2099,7 @@ function renderCaseCombinationsTable() {
                 <td class="num">${fNum(c.totalH, 2)}</td>
                 <td class="num" style="color: ${c.eccentricityPass ? 'var(--text-secondary)' : 'var(--accent-red)'}">${fNum(c.e, 3)} <small style="color:var(--text-muted)">(&lt;${fNum(c.limit_e, 3)})</small></td>
                 <td class="num" style="color: ${c.slidingPass ? 'var(--text-secondary)' : 'var(--accent-red)'}">${fNum(c.Fs, 2)}</td>
-                <td class="num" style="color: ${c.bearingPass ? 'var(--text-secondary)' : 'var(--accent-red)'}">${fNum(c.sigma, 2)}</td>
+                <td class="num" style="color: ${c.bearingPass ? 'var(--text-secondary)' : 'var(--accent-red)'}">${fNum(c.sigma, 2)} <small style="color:var(--text-muted)">(&lt;${fNum(c.limit_qa, 1)})</small></td>
                 <td>${statusBadge}</td>
             </tr>
         `;
@@ -2265,15 +2280,18 @@ function renderChecklists() {
         }
     };
     
-    updateRow('chk-xz-sliding', fNum(xz_minFs, 2), xz_minFs >= 1.2);
-    updateRow('chk-xz-overturning-fs', fNum(xz_minFot, 2), xz_minFot >= 1.2);
-    updateRow('chk-xz-eccentricity', fNum(xz_maxE, 3) + 'm', xz_maxE < xz_limitE);
-    updateRow('chk-xz-bearing', fNum(xz_maxSigma, 2) + ' t/m²', xz_maxSigma < state.params.qa);
+    const xzCases = state.results.cases.filter(c => c.plane === 'X-Z');
+    const yzCases = state.results.cases.filter(c => c.plane === 'Y-Z');
     
-    updateRow('chk-yz-sliding', fNum(yz_minFs, 2), yz_minFs >= 1.2);
-    updateRow('chk-yz-overturning-fs', fNum(yz_minFot, 2), yz_minFot >= 1.2);
-    updateRow('chk-yz-eccentricity', fNum(yz_maxE, 3) + 'm', yz_maxE < yz_limitE);
-    updateRow('chk-yz-bearing', fNum(yz_maxSigma, 2) + ' t/m²', yz_maxSigma < state.params.qa);
+    updateRow('chk-xz-sliding', fNum(xz_minFs, 2), xzCases.every(c => c.slidingPass));
+    updateRow('chk-xz-overturning-fs', fNum(xz_minFot, 2), xzCases.every(c => c.overturningFSPass));
+    updateRow('chk-xz-eccentricity', fNum(xz_maxE, 3) + 'm', xzCases.every(c => c.eccentricityPass));
+    updateRow('chk-xz-bearing', fNum(xz_maxSigma, 2) + ' t/m²', xzCases.every(c => c.bearingPass));
+    
+    updateRow('chk-yz-sliding', fNum(yz_minFs, 2), yzCases.every(c => c.slidingPass));
+    updateRow('chk-yz-overturning-fs', fNum(yz_minFot, 2), yzCases.every(c => c.overturningFSPass));
+    updateRow('chk-yz-eccentricity', fNum(yz_maxE, 3) + 'm', yzCases.every(c => c.eccentricityPass));
+    updateRow('chk-yz-bearing', fNum(yz_maxSigma, 2) + ' t/m²', yzCases.every(c => c.bearingPass));
 }
 
 function showRecommendationModal(checkId) {
@@ -2460,7 +2478,7 @@ function renderSimulator() {
     const limit_ex = state.params.B / 4.0;
     const isSlidingFail = worstSliding < 1.2;
     const isOverturningFail = worstEcc > limit_ex || worstFot < 1.2;
-    const isBearingFail = worstBearing > state.params.qa;
+    const isBearingFail = state.results.cases.some(c => !c.bearingPass);
     
     let animClass = 'anim-success';
     let failOverlayStyle = 'border-color: var(--accent-green);';
@@ -2621,11 +2639,12 @@ function loadPreset(key) {
     document.getElementById('current-preset-label').innerText = `Case Study: ${presets[key].name}`;
     
     state.params = Object.assign({
-        mitigation_active: false,
-        h_key: 0.0,
+        mitigation_active: true,
+        h_key: 0.40,
         n_anchors: 0,
         d_anchor: 25.0,
-        fy_anchor: 415.0
+        fy_anchor: 415.0,
+        bearing_increase_factor: 1.50
     }, presets[key].params);
     state.coordinates = JSON.parse(JSON.stringify(presets[key].coordinates));
     
@@ -2647,6 +2666,8 @@ function loadPreset(key) {
     document.getElementById('param-lambda').value = state.params.lambda;
     document.getElementById('param-Kh').value = state.params.Kh;
     document.getElementById('param-l').value = state.params.l;
+    
+    document.getElementById('param-bearing-increase-factor').value = state.params.bearing_increase_factor || "1.50";
     
     document.getElementById('buried-condition-toggle').checked = state.params.buriedCondition;
     document.getElementById('mitigation-toggle').checked = state.params.mitigation_active || false;
@@ -2780,6 +2801,11 @@ function initEvents() {
     document.getElementById('param-c').addEventListener('change', (e) => { state.params.c = parseFloat(e.target.value); validateAndDraw(); });
     document.getElementById('param-f').addEventListener('change', (e) => { state.params.f = parseFloat(e.target.value); validateAndDraw(); });
     document.getElementById('param-fe').addEventListener('change', (e) => { state.params.fe = parseFloat(e.target.value); validateAndDraw(); });
+    
+    document.getElementById('param-bearing-increase-factor').addEventListener('change', (e) => {
+        state.params.bearing_increase_factor = parseFloat(e.target.value);
+        validateAndDraw();
+    });
     
     document.getElementById('buried-condition-toggle').addEventListener('change', (e) => {
         state.params.buriedCondition = e.target.checked;
@@ -3084,7 +3110,7 @@ function generatePrintReportHtml() {
                 <td style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; color: #000000;">${fNum(cs.e, 3)} / ${fNum(cs.limit_e, 3)}</td>
                 <td style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; color:${cs.slidingPass ? '#15803d':'#b91c1c'}; font-weight:bold; background-color:${cs.slidingPass ? '#f0fdf4':'#fef2f2'};">${fNum(cs.Fs, 2)}</td>
                 <td style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; color:${cs.overturningFSPass ? '#15803d':'#b91c1c'}; font-weight:bold; background-color:${cs.overturningFSPass ? '#f0fdf4':'#fef2f2'};">${fNum(cs.Fot, 2)}</td>
-                <td style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; color:${cs.bearingPass ? '#15803d':'#b91c1c'}; font-weight:bold; background-color:${cs.bearingPass ? '#f0fdf4':'#fef2f2'};">${fNum(cs.sigma, 2)}</td>
+                <td style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; color:${cs.bearingPass ? '#15803d':'#b91c1c'}; font-weight:bold; background-color:${cs.bearingPass ? '#f0fdf4':'#fef2f2'};">${fNum(cs.sigma, 2)} / ${fNum(cs.limit_qa, 1)}</td>
                 <td style="padding: 4px; border: 1px solid #cbd5e1; text-align: center; color:${cs.passed ? '#15803d':'#b91c1c'}; font-weight:bold; background-color:${cs.passed ? '#dcfce7':'#fee2e2'};">${cs.passed ? 'PASS':'FAIL'}</td>
             </tr>
         `;
@@ -3128,7 +3154,7 @@ function generatePrintReportHtml() {
                     <span><strong>Sliding check:</strong> Fs = |&Sigma; V &times; &lambda; / &Sigma; H| = <strong>${cs.Fs.toFixed(2)}</strong> (Limit: &ge; 1.2) - <strong style="color:${cs.slidingPass ? '#10b981':'#ef4444'};">${cs.slidingPass ? 'PASS':'FAIL'}</strong></span>
                     <span><strong>Overturning check:</strong> Fot = |M_Resisting / M_Overturning| = <strong>${cs.Fot.toFixed(2)}</strong> (Limit: &ge; 1.2) - <strong style="color:${cs.overturningFSPass ? '#10b981':'#ef4444'};">${cs.overturningFSPass ? 'PASS':'FAIL'}</strong></span>
                     <span><strong>Eccentricity:</strong> e = |B/2 - x_res| = <strong>${cs.e.toFixed(3)} m</strong> (Limit: &le; ${cs.limit_e.toFixed(3)} m) - <strong style="color:${cs.eccentricityPass ? '#10b981':'#ef4444'};">${cs.eccentricityPass ? 'PASS':'FAIL'}</strong></span>
-                    <span><strong>Bearing pressure:</strong> &sigma;_max = <strong>${fNum(cs.sigma, 2)} t/m&sup2;</strong> (Limit: &lt; ${p.qa.toFixed(2)} t/m&sup2;) ${cs.isLiftOff ? '<em>(Heel Lift-off redistributed)</em>' : ''} - <strong style="color:${cs.bearingPass ? '#10b981':'#ef4444'};">${cs.bearingPass ? 'PASS':'FAIL'}</strong></span>
+                    <span><strong>Bearing pressure:</strong> &sigma;_max = <strong>${fNum(cs.sigma, 2)} t/m&sup2;</strong> (Limit: &lt; ${cs.limit_qa.toFixed(2)} t/m&sup2;${cs.eqLabel.includes('EQ') ? ` [qa_allow = qa &times; ${p.bearing_increase_factor || 1.50} = ${cs.limit_qa.toFixed(2)}]` : ''}) ${cs.isLiftOff ? '<em>(Heel Lift-off redistributed)</em>' : ''} - <strong style="color:${cs.bearingPass ? '#10b981':'#ef4444'};">${cs.bearingPass ? 'PASS':'FAIL'}</strong></span>
                 </div>
             </div>
         `;
@@ -3584,6 +3610,8 @@ function updateUIFieldsFromState() {
     document.getElementById('param-c').value = p.c;
     document.getElementById('param-f').value = p.f;
     document.getElementById('param-fe').value = p.fe;
+    
+    document.getElementById('param-bearing-increase-factor').value = p.bearing_increase_factor || "1.50";
     
     document.getElementById('buried-condition-toggle').checked = p.buriedCondition;
     document.getElementById('mitigation-toggle').checked = p.mitigation_active || false;
