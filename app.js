@@ -114,7 +114,10 @@ const state = {
         n_anchors: 0,
         d_anchor: 25.0,
         fy_anchor: 415.0,
-        bearing_increase_factor: 1.50
+        bearing_increase_factor: 1.50,
+        soil_cohesion: 1.50,
+        soil_friction_angle: 30.0,
+        soil_unit_weight: 1.80
     }
 };
 
@@ -127,7 +130,8 @@ const presets = {
             D: 2.000, t: 0.009, t_prime: 0.009, L: 5.188, L_prime: 0.000, l: 7.188, l_prime: 0.000,
             H: 15.5, He: 17.5, He_prime: 0.0, Q: 9.6,
             c: 0.25, f: 0.02, fe: 0.7, lambda: 0.65, qa: 100.0, Kh: 0.15, 
-            buriedCondition: true, mitigation_active: true, h_key: 0.40, bearing_increase_factor: 1.50
+            buriedCondition: true, mitigation_active: true, h_key: 0.40, bearing_increase_factor: 1.50,
+            soil_cohesion: 1.50, soil_friction_angle: 30.0, soil_unit_weight: 1.80
         },
         coordinates: {
             xyCoords: [
@@ -174,7 +178,8 @@ const presets = {
             D: 2.000, t: 0.009, t_prime: 0.009, L: 5.070, L_prime: 5.564, l: 8.070, l_prime: 10.022,
             H: 18.75, He: 20.5, He_prime: 17.5, Q: 9.6,
             c: 0.25, f: 0.02, fe: 0.7, lambda: 0.65, qa: 100.0, Kh: 0.15, 
-            buriedCondition: true, mitigation_active: true, h_key: 0.40, bearing_increase_factor: 1.50
+            buriedCondition: true, mitigation_active: true, h_key: 0.40, bearing_increase_factor: 1.50,
+            soil_cohesion: 1.50, soil_friction_angle: 30.0, soil_unit_weight: 1.80
         },
         coordinates: {
             xyCoords: [
@@ -221,7 +226,8 @@ const presets = {
             D: 1.600, t: 0.016, t_prime: 0.014, L: 15.000, L_prime: 12.000, l: 10.000, l_prime: 8.000,
             H: 450.0, He: 460.0, He_prime: 440.0, Q: 14.5,
             c: 0.25, f: 0.02, fe: 0.7, lambda: 0.55, qa: 250.0, Kh: 0.20, 
-            buriedCondition: true, mitigation_active: true, h_key: 0.40, bearing_increase_factor: 1.50
+            buriedCondition: true, mitigation_active: true, h_key: 0.40, bearing_increase_factor: 1.50,
+            soil_cohesion: 1.50, soil_friction_angle: 30.0, soil_unit_weight: 1.80
         },
         coordinates: {
             xyCoords: [
@@ -555,7 +561,13 @@ function calculateStability() {
             const eccentricityPass = e < B_4;
             
             // JICA Safety against sliding (seismic limit is 1.2)
-            const Fs = (Math.abs(totalV_clamped) * p.lambda + R_key_val + V_allow_anchors) / Math.abs(totalH);
+            const d_embed = Math.max(0.0, (state.coordinates.groundCoords[state.coordinates.groundCoords.length - 1].z - z_min));
+            const phi_rad = rad(p.soil_friction_angle || 30.0);
+            const K_p = (1.0 + Math.sin(phi_rad)) / (1.0 - Math.sin(phi_rad));
+            const P_p = p.buriedCondition ? (0.5 * K_p * (p.soil_unit_weight || 1.8) * (d_embed ** 2) * p.W) : 0.0;
+            const R_cohesion = p.buriedCondition ? ((p.soil_cohesion || 1.5) * A_base) : 0.0;
+            
+            const Fs = (Math.abs(totalV_clamped) * p.lambda + R_key_val + V_allow_anchors + P_p + R_cohesion) / Math.abs(totalH);
             const slidingPass = Fs >= 1.2;
             
             // JICA Safety against overturning (resisting moment / overturning moment >= 1.2)
@@ -611,6 +623,8 @@ function calculateStability() {
                 slidingPass,
                 bearingPass,
                 limit_qa: allowedBearing,
+                P_p: P_p,
+                R_cohesion: R_cohesion,
                 passed: eccentricityPass && overturningFSPass && slidingPass && bearingPass,
                 
                 // detailed components for Step 4 reporting
@@ -649,7 +663,13 @@ function calculateStability() {
             const B_4 = B_y / 4.0;
             const eccentricityPass = e < B_4;
             
-            const Fs = (Math.abs(totalV_clamped) * p.lambda + R_key_val + V_allow_anchors) / Math.abs(totalH);
+            const d_embed = Math.max(0.0, (state.coordinates.groundCoords[state.coordinates.groundCoords.length - 1].z - z_min));
+            const phi_rad = rad(p.soil_friction_angle || 30.0);
+            const K_p = (1.0 + Math.sin(phi_rad)) / (1.0 - Math.sin(phi_rad));
+            const P_p = p.buriedCondition ? (0.5 * K_p * (p.soil_unit_weight || 1.8) * (d_embed ** 2) * p.B) : 0.0;
+            const R_cohesion = p.buriedCondition ? ((p.soil_cohesion || 1.5) * A_base) : 0.0;
+            
+            const Fs = (Math.abs(totalV_clamped) * p.lambda + R_key_val + V_allow_anchors + P_p + R_cohesion) / Math.abs(totalH);
             const slidingPass = Fs >= 1.2;
             
             // JICA Safety against overturning in Transverse direction
@@ -705,6 +725,8 @@ function calculateStability() {
                 slidingPass,
                 bearingPass,
                 limit_qa: allowedBearing,
+                P_p: P_p,
+                R_cohesion: R_cohesion,
                 passed: eccentricityPass && overturningFSPass && slidingPass && bearingPass,
                 
                 momV: momV_clamped, momH, sumM, y_res, Rx, Ry, Rz, Tx, Ty, Tz
@@ -1337,7 +1359,7 @@ function renderDetailedCalculationCard() {
                     <tbody>
                         <tr>
                             <td><strong>Safety against Sliding (Fs)</strong></td>
-                            <td>Fs = &Sigma; V &times; &lambda; / &Sigma; H</td>
+                            <td>Fs = (|&Sigma;V|&middot;&lambda; + R_key + V_anchors${c.P_p > 0 ? ' + P_p' : ''}${c.R_cohesion > 0 ? ' + R_cohesion' : ''}) / |&Sigma;H|</td>
                             <td class="num">${c.Fs.toFixed(2)}</td>
                             <td class="num">&ge; 1.2</td>
                             <td style="color:${c.slidingPass ? 'var(--accent-green)':'var(--accent-red)'}; font-weight:bold;">${c.slidingPass ? 'PASS':'FAIL'}</td>
@@ -2644,7 +2666,10 @@ function loadPreset(key) {
         n_anchors: 0,
         d_anchor: 25.0,
         fy_anchor: 415.0,
-        bearing_increase_factor: 1.50
+        bearing_increase_factor: 1.50,
+        soil_cohesion: 1.50,
+        soil_friction_angle: 30.0,
+        soil_unit_weight: 1.80
     }, presets[key].params);
     state.coordinates = JSON.parse(JSON.stringify(presets[key].coordinates));
     
@@ -2668,6 +2693,8 @@ function loadPreset(key) {
     document.getElementById('param-l').value = state.params.l;
     
     document.getElementById('param-bearing-increase-factor').value = state.params.bearing_increase_factor || "1.50";
+    document.getElementById('param-soil-cohesion').value = state.params.soil_cohesion || 1.50;
+    document.getElementById('param-soil-friction-angle').value = state.params.soil_friction_angle || 30.0;
     
     document.getElementById('buried-condition-toggle').checked = state.params.buriedCondition;
     document.getElementById('mitigation-toggle').checked = state.params.mitigation_active || false;
@@ -2801,6 +2828,15 @@ function initEvents() {
     document.getElementById('param-c').addEventListener('change', (e) => { state.params.c = parseFloat(e.target.value); validateAndDraw(); });
     document.getElementById('param-f').addEventListener('change', (e) => { state.params.f = parseFloat(e.target.value); validateAndDraw(); });
     document.getElementById('param-fe').addEventListener('change', (e) => { state.params.fe = parseFloat(e.target.value); validateAndDraw(); });
+    
+    document.getElementById('param-soil-cohesion').addEventListener('change', (e) => {
+        state.params.soil_cohesion = parseFloat(e.target.value);
+        validateAndDraw();
+    });
+    document.getElementById('param-soil-friction-angle').addEventListener('change', (e) => {
+        state.params.soil_friction_angle = parseFloat(e.target.value);
+        validateAndDraw();
+    });
     
     document.getElementById('param-bearing-increase-factor').addEventListener('change', (e) => {
         state.params.bearing_increase_factor = parseFloat(e.target.value);
@@ -3151,7 +3187,7 @@ function generatePrintReportHtml() {
                     </div>
                 </div>
                 <div style="font-size: 9px; line-height: 1.5; color: #334155; margin-top: 6px; border-top: 1px dashed #cbd5e1; padding-top: 4px; display: flex; gap: 12px; flex-wrap: wrap;">
-                    <span><strong>Sliding check:</strong> Fs = |&Sigma; V &times; &lambda; / &Sigma; H| = <strong>${cs.Fs.toFixed(2)}</strong> (Limit: &ge; 1.2) - <strong style="color:${cs.slidingPass ? '#10b981':'#ef4444'};">${cs.slidingPass ? 'PASS':'FAIL'}</strong></span>
+                    <span><strong>Sliding check:</strong> Fs = (${cs.P_p > 0 || cs.R_cohesion > 0 ? `(|&Sigma; V| &times; &lambda; + R_key + V_anchors + P_p + R_cohesion)` : `(|&Sigma; V| &times; &lambda; + R_key + V_anchors`}) / |&Sigma; H| = <strong>${cs.Fs.toFixed(2)}</strong> (Limit: &ge; 1.2)${cs.P_p > 0 ? ` [P_p = ${cs.P_p.toFixed(2)} t, R_coh = ${cs.R_cohesion.toFixed(2)} t]` : ''} - <strong style="color:${cs.slidingPass ? '#10b981':'#ef4444'};">${cs.slidingPass ? 'PASS':'FAIL'}</strong></span>
                     <span><strong>Overturning check:</strong> Fot = |M_Resisting / M_Overturning| = <strong>${cs.Fot.toFixed(2)}</strong> (Limit: &ge; 1.2) - <strong style="color:${cs.overturningFSPass ? '#10b981':'#ef4444'};">${cs.overturningFSPass ? 'PASS':'FAIL'}</strong></span>
                     <span><strong>Eccentricity:</strong> e = |B/2 - x_res| = <strong>${cs.e.toFixed(3)} m</strong> (Limit: &le; ${cs.limit_e.toFixed(3)} m) - <strong style="color:${cs.eccentricityPass ? '#10b981':'#ef4444'};">${cs.eccentricityPass ? 'PASS':'FAIL'}</strong></span>
                     <span><strong>Bearing pressure:</strong> &sigma;_max = <strong>${fNum(cs.sigma, 2)} t/m&sup2;</strong> (Limit: &lt; ${cs.limit_qa.toFixed(2)} t/m&sup2;${cs.eqLabel.includes('EQ') ? ` [qa_allow = qa &times; ${p.bearing_increase_factor || 1.50} = ${cs.limit_qa.toFixed(2)}]` : ''}) ${cs.isLiftOff ? '<em>(Heel Lift-off redistributed)</em>' : ''} - <strong style="color:${cs.bearingPass ? '#10b981':'#ef4444'};">${cs.bearingPass ? 'PASS':'FAIL'}</strong></span>
@@ -3612,6 +3648,8 @@ function updateUIFieldsFromState() {
     document.getElementById('param-fe').value = p.fe;
     
     document.getElementById('param-bearing-increase-factor').value = p.bearing_increase_factor || "1.50";
+    document.getElementById('param-soil-cohesion').value = p.soil_cohesion || 1.50;
+    document.getElementById('param-soil-friction-angle').value = p.soil_friction_angle || 30.0;
     
     document.getElementById('buried-condition-toggle').checked = p.buriedCondition;
     document.getElementById('mitigation-toggle').checked = p.mitigation_active || false;
