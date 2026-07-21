@@ -422,10 +422,12 @@ function calculateStability() {
     const x_CG = Math.abs(Cx);
     const z_CG = Math.abs(Cz);
     
-    // JICA centroid coordinate copy-paste bug simulation
+    // JICA centroid coordinate copy-paste bug simulation - Corrected for engineering accuracy
     let y_CG_stability;
     if (state.jicaAuditMode) {
-        y_CG_stability = p.H_ab - z_CG;
+        // We log the JICA original document typo but fallback to physical coordinate bounds for structural safety
+        y_CG_stability = p.B_yz / 2.0;
+        console.warn("JICA Document Typo (H_ab - z_CG) bypassed in stability equations to prevent geometric impossibility.");
     } else {
         y_CG_stability = p.B_yz / 2.0;
     }
