@@ -2082,6 +2082,40 @@ function updateBlueprintViewToggles() {
 }
 window.updateBlueprintViewToggles = updateBlueprintViewToggles;
 
+function makeDimLine(x1, y1, x2, y2, label, isVertical = false) {
+    if ([x1, y1, x2, y2].some(v => typeof v !== 'number' || isNaN(v))) return '';
+    const tickLen = 4;
+    let tick1 = '', tick2 = '';
+    if (isVertical) {
+        tick1 = `M${(x1 - tickLen).toFixed(1)},${y1.toFixed(1)} L${(x1 + tickLen).toFixed(1)},${y1.toFixed(1)}`;
+        tick2 = `M${(x2 - tickLen).toFixed(1)},${y2.toFixed(1)} L${(x2 + tickLen).toFixed(1)},${y2.toFixed(1)}`;
+    } else {
+        tick1 = `M${x1.toFixed(1)},${(y1 - tickLen).toFixed(1)} L${x1.toFixed(1)},${(y1 + tickLen).toFixed(1)}`;
+        tick2 = `M${x2.toFixed(1)},${(y2 - tickLen).toFixed(1)} L${x2.toFixed(1)},${(y2 + tickLen).toFixed(1)}`;
+    }
+    
+    const midX = (x1 + x2) / 2.0;
+    const midY = (y1 + y2) / 2.0;
+    
+    if (isVertical) {
+        return `
+            <g class="dim-group">
+                <line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#64748b" stroke-width="1.2" stroke-dasharray="3 2" />
+                <path d="${tick1} ${tick2}" stroke="#64748b" stroke-width="1.5" />
+                <text x="${(midX - 8).toFixed(1)}" y="${(midY + 3).toFixed(1)}" text-anchor="end" fill="#00f2fe" font-size="9" font-weight="700" font-family="monospace">${label}</text>
+            </g>
+        `;
+    } else {
+        return `
+            <g class="dim-group">
+                <line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#64748b" stroke-width="1.2" stroke-dasharray="3 2" />
+                <path d="${tick1} ${tick2}" stroke="#64748b" stroke-width="1.5" />
+                <text x="${midX.toFixed(1)}" y="${(midY - 6).toFixed(1)}" text-anchor="middle" fill="#00f2fe" font-size="9" font-weight="700" font-family="monospace">${label}</text>
+            </g>
+        `;
+    }
+}
+
 function drawPlanSVG(L_cut, L1) {
     const viewport = document.getElementById('plan-svg-viewport');
     if (!viewport) return;
@@ -2093,18 +2127,25 @@ function drawPlanSVG(L_cut, L1) {
     const c = state.coordinates;
     const p = state.params;
     
-    const xs = [...c.xyCoords.map(pt => pt.x), ...c.pipeXY.map(pt => pt.x)];
-    const ys = [...c.xyCoords.map(pt => pt.y), ...c.pipeXY.map(pt => pt.y)];
+    const blockXs = c.xyCoords.map(pt => pt.x);
+    const blockYs = c.xyCoords.map(pt => pt.y);
+    const xs = [...blockXs, ...c.pipeXY.map(pt => pt.x)];
+    const ys = [...blockYs, ...c.pipeXY.map(pt => pt.y)];
     
     const minX = Math.min(...xs);
     const maxX = Math.max(...xs);
     const minY = Math.min(...ys);
     const maxY = Math.max(...ys);
     
+    const blkMinX = Math.min(...blockXs);
+    const blkMaxX = Math.max(...blockXs);
+    const blkMinY = Math.min(...blockYs);
+    const blkMaxY = Math.max(...blockYs);
+    
     const w_geom = Math.max(1.0, maxX - minX);
     const h_geom = Math.max(1.0, maxY - minY);
     
-    const pad = 30;
+    const pad = 42;
     const scaleX = (viewWidth - 2 * pad) / w_geom;
     const scaleY = (viewHeight - 2 * pad) / h_geom;
     const scale = Math.min(scaleX, scaleY);
@@ -2115,6 +2156,17 @@ function drawPlanSVG(L_cut, L1) {
     const blockPoints = c.xyCoords.map(pt => `${offsetX + pt.x * scale},${offsetY - pt.y * scale}`).join(' ');
     const pipePoints = c.pipeXY.map(pt => `${offsetX + pt.x * scale},${offsetY - pt.y * scale}`).join(' ');
     const cutPoints = c.cutLineCoords.map(pt => `${offsetX + pt.x * scale},${offsetY - pt.y * scale}`).join(' ');
+
+    const svgBlkMinX = offsetX + blkMinX * scale;
+    const svgBlkMaxX = offsetX + blkMaxX * scale;
+    const svgBlkMinY = offsetY - blkMaxY * scale;
+    const svgBlkMaxY = offsetY - blkMinY * scale;
+
+    const dimLen = makeDimLine(svgBlkMinX, svgBlkMinY - 14, svgBlkMaxX, svgBlkMinY - 14, `B = ${p.B.toFixed(2)} m`);
+    const dimWid = makeDimLine(svgBlkMinX - 14, svgBlkMinY, svgBlkMinX - 14, svgBlkMaxY, `W = ${(p.B_yz || p.W).toFixed(2)} m`, true);
+
+    const pipeMidX = (svgBlkMinX + svgBlkMaxX) / 2.0;
+    const pipeMidY = (svgBlkMinY + svgBlkMaxY) / 2.0;
     
     viewport.innerHTML = `
         <svg width="100%" height="100%" viewBox="0 0 ${viewWidth} ${viewHeight}">
@@ -2147,10 +2199,17 @@ function drawPlanSVG(L_cut, L1) {
             <!-- Centerline dashed axis -->
             <polyline points="${pipePoints}" fill="none" stroke="var(--accent-cyan)" stroke-width="1.5" stroke-dasharray="6 3" />
             
-            <!-- Cut Line along custom path (dashed orange indicator) -->
+            <!-- Cut Line along custom path -->
             <polyline points="${cutPoints}" fill="none" stroke="var(--accent-orange)" stroke-width="2.5" stroke-dasharray="8 4" />
             
-            <text x="20" y="30" fill="var(--text-secondary)" font-size="11" font-weight="600" letter-spacing="1">PLAN VIEW (X-Y plane)</text>
+            <!-- Engineering Dimension Lines -->
+            ${dimLen}
+            ${dimWid}
+
+            <!-- Pipe Diameter Label Callout -->
+            <text x="${pipeMidX.toFixed(1)}" y="${(pipeMidY + 14).toFixed(1)}" fill="#00f2fe" font-size="9" font-weight="700" text-anchor="middle" font-family="monospace">Pipe Ø D = ${p.D.toFixed(2)} m</text>
+
+            <text x="20" y="24" fill="var(--text-secondary)" font-size="11" font-weight="600" letter-spacing="1">PLAN VIEW (X-Y plane)</text>
         </svg>
     `;
 }
@@ -2166,18 +2225,25 @@ function drawProfileSVG() {
     const c = state.coordinates;
     const p = state.params;
     
-    const xs = [...c.xzCoords.map(pt => pt.x), ...c.pipeXZ.map(pt => pt.x), ...c.groundCoords.map(pt => pt.x)];
-    const zs = [...c.xzCoords.map(pt => pt.z), ...c.pipeXZ.map(pt => pt.z), ...c.groundCoords.map(pt => pt.z)];
+    const blockXs = c.xzCoords.map(pt => pt.x);
+    const blockZs = c.xzCoords.map(pt => pt.z);
+    const xs = [...blockXs, ...c.pipeXZ.map(pt => pt.x), ...c.groundCoords.map(pt => pt.x)];
+    const zs = [...blockZs, ...c.pipeXZ.map(pt => pt.z), ...c.groundCoords.map(pt => pt.z)];
     
     const minX = Math.min(...xs);
     const maxX = Math.max(...xs);
     const minZ = Math.min(...zs);
     const maxZ = Math.max(...zs);
     
+    const blkMinX = Math.min(...blockXs);
+    const blkMaxX = Math.max(...blockXs);
+    const blkMinZ = Math.min(...blockZs);
+    const blkMaxZ = Math.max(...blockZs);
+    
     const w_geom = Math.max(1.0, maxX - minX);
     const h_geom = Math.max(1.0, maxZ - minZ);
     
-    const pad = 30;
+    const pad = 42;
     const scaleX = (viewWidth - 2 * pad) / w_geom;
     const scaleY = (viewHeight - 2 * pad) / h_geom;
     const scale = Math.min(scaleX, scaleY);
@@ -2187,7 +2253,6 @@ function drawProfileSVG() {
     
     const blockPoints = c.xzCoords.map(pt => `${offsetX + pt.x * scale},${offsetY - pt.z * scale}`).join(' ');
     
-    // Pipe points on unfolded alignment
     const pX1 = offsetX + c.pipeXZ[0].x * scale;
     const pY1 = offsetY - c.pipeXZ[0].z * scale;
     const pX2 = offsetX + c.pipeXZ[1].x * scale;
@@ -2195,12 +2260,19 @@ function drawProfileSVG() {
     const pX3 = offsetX + c.pipeXZ[2].x * scale;
     const pY3 = offsetY - c.pipeXZ[2].z * scale;
     
-    // Ground points for rendering
     const groundPoints = c.groundCoords.map(pt => `${offsetX + pt.x * scale},${offsetY - pt.z * scale}`).join(' ');
     const firstX = offsetX + c.groundCoords[0].x * scale;
     const lastX = offsetX + c.groundCoords[c.groundCoords.length - 1].x * scale;
     const bottomY = viewHeight - 10;
-    
+
+    const svgBlkMinX = offsetX + blkMinX * scale;
+    const svgBlkMaxX = offsetX + blkMaxX * scale;
+    const svgBlkMinZ = offsetY - blkMaxZ * scale;
+    const svgBlkMaxZ = offsetY - blkMinZ * scale;
+
+    const dimLen = makeDimLine(svgBlkMinX, svgBlkMaxZ + 14, svgBlkMaxX, svgBlkMaxZ + 14, `B = ${p.B.toFixed(2)} m`);
+    const dimH = makeDimLine(svgBlkMinX - 14, svgBlkMinZ, svgBlkMinX - 14, svgBlkMaxZ, `H = ${p.H_ab.toFixed(2)} m`, true);
+
     viewport.innerHTML = `
         <svg width="100%" height="100%" viewBox="0 0 ${viewWidth} ${viewHeight}">
             <defs>
@@ -2226,7 +2298,14 @@ function drawProfileSVG() {
             <!-- Centerline dashed axis -->
             <polyline points="${pX1},${pY1} ${pX2},${pY2} ${pX3},${pY3}" fill="none" stroke="var(--accent-cyan)" stroke-width="1.5" stroke-dasharray="6 3" />
             
-            <text x="20" y="30" fill="var(--text-secondary)" font-size="11" font-weight="600" letter-spacing="1">LONGITUDINAL PROFILE (X-Z plane)</text>
+            <!-- Engineering Dimension Lines -->
+            ${dimLen}
+            ${dimH}
+
+            <!-- Pipe Diameter Label Callout -->
+            <text x="${pX2.toFixed(1)}" y="${(pY2 - 14).toFixed(1)}" fill="#00f2fe" font-size="9" font-weight="700" text-anchor="middle" font-family="monospace">Pipe Ø D = ${p.D.toFixed(2)} m</text>
+
+            <text x="20" y="24" fill="var(--text-secondary)" font-size="11" font-weight="600" letter-spacing="1">LONGITUDINAL PROFILE (X-Z plane)</text>
         </svg>
     `;
 }
@@ -2242,18 +2321,25 @@ function drawSectionSVG() {
     const c = state.coordinates;
     const p = state.params;
     
-    const ys = [...c.yzCoords.map(pt => pt.y), c.pipeCenterYZ.y];
-    const zs = [...c.yzCoords.map(pt => pt.z), c.pipeCenterYZ.z];
+    const blockYs = c.yzCoords.map(pt => pt.y);
+    const blockZs = c.yzCoords.map(pt => pt.z);
+    const ys = [...blockYs, c.pipeCenterYZ.y];
+    const zs = [...blockZs, c.pipeCenterYZ.z];
     
     const minY = Math.min(...ys);
     const maxY = Math.max(...ys);
     const minZ = Math.min(...zs);
     const maxZ = Math.max(...zs);
     
+    const blkMinY = Math.min(...blockYs);
+    const blkMaxY = Math.max(...blockYs);
+    const blkMinZ = Math.min(...blockZs);
+    const blkMaxZ = Math.max(...blockZs);
+    
     const w_geom = Math.max(1.0, maxY - minY);
     const h_geom = Math.max(1.0, maxZ - minZ);
     
-    const pad = 30;
+    const pad = 42;
     const scaleY_factor = (viewWidth - 2 * pad) / w_geom;
     const scaleZ_factor = (viewHeight - 2 * pad) / h_geom;
     const scale = Math.min(scaleY_factor, scaleZ_factor);
@@ -2269,7 +2355,6 @@ function drawSectionSVG() {
     const firstY = offsetX + c.yzCoords[0].y * scale;
     const lastY = offsetX + c.yzCoords[1].y * scale;
     
-    // Find ground level at the block centerline (x = B/2) from longitudinal ground profile coordinates
     let z_ground = 0.0;
     if (c.groundCoords && c.groundCoords.length > 0) {
         const targetX = p.B / 2.0;
@@ -2284,6 +2369,14 @@ function drawSectionSVG() {
     }
     
     const groundY_svg = offsetY - z_ground * scale;
+
+    const svgBlkMinY = offsetX + blkMinY * scale;
+    const svgBlkMaxY = offsetX + blkMaxY * scale;
+    const svgBlkMinZ = offsetY - blkMaxZ * scale;
+    const svgBlkMaxZ = offsetY - blkMinZ * scale;
+
+    const dimWid = makeDimLine(svgBlkMinY, svgBlkMaxZ + 14, svgBlkMaxY, svgBlkMaxZ + 14, `W = ${(p.B_yz || p.W).toFixed(2)} m`);
+    const dimH = makeDimLine(svgBlkMinY - 14, svgBlkMinZ, svgBlkMinY - 14, svgBlkMaxZ, `H = ${p.H_ab.toFixed(2)} m`, true);
     
     viewport.innerHTML = `
         <svg width="100%" height="100%" viewBox="0 0 ${viewWidth} ${viewHeight}">
@@ -2306,7 +2399,14 @@ function drawSectionSVG() {
             <line x1="${pipeY - 12}" y1="${pipeZ}" x2="${pipeY + 12}" y2="${pipeZ}" stroke="rgba(0, 242, 254, 0.6)" stroke-width="1" />
             <line x1="${pipeY}" y1="${pipeZ - 12}" x2="${pipeY}" y2="${pipeZ + 12}" stroke="rgba(0, 242, 254, 0.6)" stroke-width="1" />
             
-            <text x="20" y="30" fill="var(--text-secondary)" font-size="11" font-weight="600" letter-spacing="1">CROSS SECTION (Y-Z plane)</text>
+            <!-- Engineering Dimension Lines -->
+            ${dimWid}
+            ${dimH}
+
+            <!-- Pipe Center Location Callout -->
+            <text x="${(pipeY + 10).toFixed(1)}" y="${(pipeZ - 8).toFixed(1)}" fill="#00f2fe" font-size="8.5" font-weight="700" font-family="monospace">Pipe (Y:${c.pipeCenterYZ.y.toFixed(2)}m, Z:${c.pipeCenterYZ.z.toFixed(2)}m)</text>
+
+            <text x="20" y="24" fill="var(--text-secondary)" font-size="11" font-weight="600" letter-spacing="1">CROSS SECTION (Y-Z plane)</text>
         </svg>
     `;
 }
@@ -3303,21 +3403,30 @@ function generatePrintReportHtml() {
                               .replace(/fill="url\(#concreteGrad\)"/g, 'fill="url(#concreteHatch)"')
                               .replace(/stroke="var\(--accent-cyan\)"/g, 'stroke="#0f172a" stroke-width="2"')
                               .replace(/stroke="url\(#pipeGrad\)"/g, 'stroke="#475569"')
-                              .replace(/fill="url\(#pipeGrad\)"/g, 'fill="url(#concreteHatch)"');
+                              .replace(/fill="url\(#pipeGrad\)"/g, 'fill="url(#concreteHatch)"')
+                              .replace(/fill="#00f2fe"/g, 'fill="#0284c7"')
+                              .replace(/stroke="#64748b"/g, 'stroke="#475569"')
+                              .replace(/fill="var\(--text-secondary\)"/g, 'fill="#0f172a"');
 
     let cleanProfileSvg = profileSvg.replace('<rect width="100%" height="100%" fill="url(#grid)"></rect>', '')
                                     .replace('<rect width="100%" height="100%" fill="url(#grid)" />', '')
                                     .replace('<defs>', `<defs>${concreteHatchDef}`)
                                     .replace(/fill="url\(#concreteGrad\)"/g, 'fill="url(#concreteHatch)"')
                                     .replace(/stroke="var\(--accent-cyan\)"/g, 'stroke="#0f172a" stroke-width="2"')
-                                    .replace(/stroke="url\(#pipeGrad\)"/g, 'stroke="#475569"');
+                                    .replace(/stroke="url\(#pipeGrad\)"/g, 'stroke="#475569"')
+                                    .replace(/fill="#00f2fe"/g, 'fill="#0284c7"')
+                                    .replace(/stroke="#64748b"/g, 'stroke="#475569"')
+                                    .replace(/fill="var\(--text-secondary\)"/g, 'fill="#0f172a"');
 
     let cleanSectionSvg = sectionSvg.replace('<rect width="100%" height="100%" fill="url(#grid)"></rect>', '')
                                     .replace('<rect width="100%" height="100%" fill="url(#grid)" />', '')
                                     .replace('<defs>', `<defs>${concreteHatchDef}`)
                                     .replace(/fill="url\(#concreteGrad\)"/g, 'fill="url(#concreteHatch)"')
                                     .replace(/stroke="var\(--accent-cyan\)"/g, 'stroke="#0f172a" stroke-width="2"')
-                                    .replace(/fill="url\(#pipeGrad\)"/g, 'fill="none" stroke="#475569" stroke-width="3"');
+                                    .replace(/fill="url\(#pipeGrad\)"/g, 'fill="none" stroke="#475569" stroke-width="3"')
+                                    .replace(/fill="#00f2fe"/g, 'fill="#0284c7"')
+                                    .replace(/stroke="#64748b"/g, 'stroke="#475569"')
+                                    .replace(/fill="var\(--text-secondary\)"/g, 'fill="#0f172a"');
 
     // Table 2.1.1 scalar magnitudes
     const mag_W = Math.sqrt(f.W.x**2 + f.W.y**2 + f.W.z**2);
