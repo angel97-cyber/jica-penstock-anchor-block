@@ -539,7 +539,7 @@ function calculateStability() {
         const Rz = P_vec.z + Tz;
         
         // Plane 1: X-Z (Flow direction)
-        [0.0, -1.0, 1.0].forEach(eqSign => {
+        [-1.0, 1.0].forEach(eqSign => {
             const totalV = -WA + Rz;
             const x_pipe = x_pipe_val;
             const momV = -WA * x_CG + Rz * x_pipe;
@@ -566,9 +566,8 @@ function calculateStability() {
             const B_x = p.B;
             const e = Math.abs(B_x / 2.0 - x_res);
             
-            const eqLabelVal = eqSign === 0.0 ? 'Static' : (eqSign < 0 ? '-x EQ' : '+x EQ');
-            const isSeismic = eqLabelVal.includes('EQ');
-            const limit_e = isSeismic ? (B_x / 4.0) : (B_x / 6.0);
+            const eqLabelVal = eqSign < 0 ? '-x EQ' : '+x EQ';
+            const limit_e = B_x / 4.0;
             const eccentricityPass = e < limit_e;
             
             // JICA Safety against sliding (seismic limit is 1.2)
@@ -595,7 +594,7 @@ function calculateStability() {
             const Fot = M_O > 0.001 ? Math.abs((M_R + M_R_anchors) / M_O) : 999.0;
             const overturningFSPass = Fot >= 1.2;
             
-            const allowedBearing = isSeismic ? (p.qa * (p.bearing_increase_factor || 1.50)) : p.qa;
+            const allowedBearing = p.qa * (p.bearing_increase_factor || 1.50);
             
             let sigma_max = Math.abs(totalV_clamped / A_base) * (1.0 + 6.0 * e / B_x);
             let isLiftOff = false;
@@ -643,7 +642,7 @@ function calculateStability() {
         });
         
         // Plane 2: Y-Z (Transverse direction)
-        [0.0, -1.0, 1.0].forEach(eqSign => {
+        [-1.0, 1.0].forEach(eqSign => {
             const totalV = -WA + Rz;
             const y_pipe = p.B_yz / 2.0;
             const momV = -WA * y_CG_stability + Rz * y_pipe;
@@ -670,9 +669,8 @@ function calculateStability() {
             const B_y = p.B_yz;
             const e = Math.abs(B_y / 2.0 - y_res);
             
-            const eqLabelVal = eqSign === 0.0 ? 'Static' : (eqSign < 0 ? '-y EQ' : '+y EQ');
-            const isSeismic = eqLabelVal.includes('EQ');
-            const limit_e = isSeismic ? (B_y / 4.0) : (B_y / 6.0);
+            const eqLabelVal = eqSign < 0 ? '-y EQ' : '+y EQ';
+            const limit_e = B_y / 4.0;
             const eccentricityPass = e < limit_e;
             
             const d_embed = Math.max(0.0, (state.coordinates.groundCoords[state.coordinates.groundCoords.length - 1].z - z_min));
@@ -698,7 +696,7 @@ function calculateStability() {
             const Fot = M_O > 0.001 ? Math.abs((M_R + M_R_anchors) / M_O) : 999.0;
             const overturningFSPass = Fot >= 1.2;
             
-            const allowedBearing = isSeismic ? (p.qa * (p.bearing_increase_factor || 1.50)) : p.qa;
+            const allowedBearing = p.qa * (p.bearing_increase_factor || 1.50);
             
             let sigma_max = Math.abs(totalV_clamped / A_base) * (1.0 + 6.0 * e / B_y);
             let isLiftOff = false;
@@ -761,15 +759,15 @@ function generateFBDSVG(plane) {
     const isXZ = (plane === 'XZ');
     
     // Width and Height of SVG
-    const w = 450;
-    const h = 280;
+    const w = 550;
+    const h = 340;
     
     // Width and height dimensions of geometry
     const B_dim = isXZ ? p.B : p.B_yz;
     const H_dim = p.H_ab;
     
-    const padX = 50;
-    const padY = 65;
+    const padX = 65;
+    const padY = 75;
     const scaleX = (w - 2 * padX) / B_dim;
     const scaleY = (h - 2 * padY) / H_dim;
     const scale = Math.min(scaleX, scaleY);
@@ -808,15 +806,15 @@ function generateFBDSVG(plane) {
     // Arrows helper function
     const drawArrow = (x1, y1, x2, y2, color, label, labelOffset = {x: 0, y: 0}) => {
         const angle = Math.atan2(y2 - y1, x2 - x1);
-        const headLength = 7;
+        const headLength = 8;
         const arrowX1 = x2 - headLength * Math.cos(angle - Math.PI / 6);
         const arrowY1 = y2 - headLength * Math.sin(angle - Math.PI / 6);
         const arrowX2 = x2 - headLength * Math.cos(angle + Math.PI / 6);
         const arrowY2 = y2 - headLength * Math.sin(angle + Math.PI / 6);
         return `
-            <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="1.8" />
+            <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="2.2" />
             <polygon points="${x2},${y2} ${arrowX1},${arrowY1} ${arrowX2},${arrowY2}" fill="${color}" />
-            <text x="${x2 + labelOffset.x}" y="${y2 + labelOffset.y}" fill="${color}" font-size="8.5" font-weight="bold" font-family="'Inter', sans-serif">${label}</text>
+            <text x="${x2 + labelOffset.x}" y="${y2 + labelOffset.y}" fill="${color}" font-size="9.5" font-weight="bold" font-family="'Inter', sans-serif">${label}</text>
         `;
     };
 
@@ -828,15 +826,14 @@ function generateFBDSVG(plane) {
         const nx = -dy / len;
         const ny = dx / len;
         
-        // tick lines
         const tickLength = 4;
         const tick1 = `M${x1 - nx * tickLength},${y1 - ny * tickLength} L${x1 + nx * tickLength},${y1 + ny * tickLength}`;
         const tick2 = `M${x2 - nx * tickLength},${y2 - ny * tickLength} L${x2 + nx * tickLength},${y2 + ny * tickLength}`;
         
         return `
-            <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="0.7" stroke-dasharray="1.5 1.5" />
-            <path d="${tick1} ${tick2}" stroke="${color}" stroke-width="0.8" />
-            <text x="${(x1 + x2)/2.0}" y="${(y1 + y2)/2.0 - 4}" text-anchor="middle" fill="${color}" font-size="8" font-family="monospace">${label}</text>
+            <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="0.8" stroke-dasharray="2 2" />
+            <path d="${tick1} ${tick2}" stroke="${color}" stroke-width="0.9" />
+            <text x="${(x1 + x2)/2.0}" y="${(y1 + y2)/2.0 - 4}" text-anchor="middle" fill="${color}" font-size="8.5" font-family="monospace">${label}</text>
         `;
     };
     
@@ -856,20 +853,50 @@ function generateFBDSVG(plane) {
     if (p.mitigation_active && p.n_anchors > 0) {
         const anchorX = cs.totalH >= 0 ? (offsetX + 1.0 * scale) : (offsetX + (B_dim - 1.0) * scale);
         anchorsHtml = `
-            <line x1="${anchorX}" y1="${offsetY}" x2="${anchorX}" y2="${offsetY + 25}" stroke="#b91c1c" stroke-width="2.5" stroke-dasharray="3 1.5" />
-            <circle cx="${anchorX}" cy="${offsetY + 25}" r="3" fill="#b91c1c" />
-            ${drawArrow(anchorX, offsetY + 25, anchorX, offsetY, '#b91c1c', 'T_anchors', {x: 6, y: -4})}
+            <line x1="${anchorX}" y1="${offsetY}" x2="${anchorX}" y2="${offsetY + 30}" stroke="#b91c1c" stroke-width="3" stroke-dasharray="4 2" />
+            <circle cx="${anchorX}" cy="${offsetY + 30}" r="4" fill="#b91c1c" />
+            ${drawArrow(anchorX, offsetY + 30, anchorX, offsetY, '#b91c1c', 'T_anchors', {x: 8, y: -4})}
         `;
+    }
+
+    // Ground Line (GL) coordinates & Passive Soil Pressure
+    let glHtml = "";
+    if (c.groundCoords && c.groundCoords.length >= 2) {
+        const gl_y1 = offsetY - (c.groundCoords[0].z - z_min_val) * scale;
+        const gl_y2 = offsetY - (c.groundCoords[1].z - z_min_val) * scale;
+        glHtml = `
+            <line x1="${offsetX - 35}" y1="${gl_y1}" x2="${offsetX + B_dim * scale + 35}" y2="${gl_y2}" stroke="#15803d" stroke-width="2.5" stroke-dasharray="6 3" />
+            <text x="${offsetX + B_dim * scale + 40}" y="${gl_y2 + 4}" fill="#15803d" font-size="10" font-weight="bold">GL (Ground Level)</text>
+        `;
+    } else {
+        glHtml = `
+            <line x1="${offsetX - 35}" y1="${offsetY}" x2="${offsetX + B_dim * scale + 35}" y2="${offsetY}" stroke="#475569" stroke-width="2.5" stroke-dasharray="6 3" />
+            <text x="${offsetX + B_dim * scale + 40}" y="${offsetY + 4}" fill="#475569" font-size="10" font-weight="bold">GL (Base Level)</text>
+        `;
+    }
+
+    // Passive soil pressure (P_p) and cohesion (R_cohesion)
+    let geotechnicalHtml = "";
+    if (p.buriedCondition) {
+        if (cs.P_p > 0) {
+            const d_embed = Math.max(0.0, (c.groundCoords[c.groundCoords.length - 1].z - z_min_val));
+            const pp_y = offsetY - (d_embed / 3.0) * scale;
+            const pp_start_x = offsetX + B_dim * scale + 50;
+            const pp_end_x = offsetX + B_dim * scale;
+            geotechnicalHtml += drawArrow(pp_start_x, pp_y, pp_end_x, pp_y, '#059669', `Pp = ${cs.P_p.toFixed(1)}t`, {x: 8, y: -4});
+        }
+        if (cs.R_cohesion > 0) {
+            geotechnicalHtml += drawArrow(offsetX - 50, offsetY, offsetX, offsetY, '#059669', `R_coh = ${cs.R_cohesion.toFixed(1)}t`, {x: -100, y: -6});
+        }
     }
 
     // Accumulate elements
     let svgBody = `
         <!-- Concrete hatch background -->
-        <polygon points="${blockPointsStr}" fill="#f8fafc" stroke="#0f172a" stroke-width="1.8" />
+        <polygon points="${blockPointsStr}" fill="#f8fafc" stroke="#0f172a" stroke-width="2.2" />
         ${keyHtml}
-        
-        <!-- Ground Line -->
-        <line x1="${offsetX - 25}" y1="${offsetY}" x2="${offsetX + B_dim * scale + 25}" y2="${offsetY}" stroke="#475569" stroke-width="2" />
+        ${glHtml}
+        ${geotechnicalHtml}
     `;
     
     if (isXZ) {
@@ -881,74 +908,72 @@ function generateFBDSVG(plane) {
         const pY3 = offsetY - (c.pipeXZ[2].z - z_min_val) * scale;
         
         svgBody += `
-            <polyline points="${pX1},${pY1} ${pX2},${pY2} ${pX3},${pY3}" fill="none" stroke="#64748b" stroke-width="12" stroke-opacity="0.25" stroke-linecap="round" />
-            <polyline points="${pX1},${pY1} ${pX2},${pY2} ${pX3},${pY3}" fill="none" stroke="#334155" stroke-width="1" stroke-dasharray="4 2" />
+            <polyline points="${pX1},${pY1} ${pX2},${pY2} ${pX3},${pY3}" fill="none" stroke="#64748b" stroke-width="14" stroke-opacity="0.25" stroke-linecap="round" />
+            <polyline points="${pX1},${pY1} ${pX2},${pY2} ${pX3},${pY3}" fill="none" stroke="#334155" stroke-width="1.2" stroke-dasharray="5 3" />
         `;
     } else {
         const pipeY_svg = offsetX + c.pipeCenterYZ.y * scale;
         const pipeZ_svg = offsetY - (c.pipeCenterYZ.z - z_min_val) * scale;
         const radius_svg = (p.D / 2.0) * scale;
         svgBody += `
-            <circle cx="${pipeY_svg}" cy="${pipeZ_svg}" r="${radius_svg}" fill="#64748b" fill-opacity="0.25" stroke="#334155" stroke-width="1.5" />
-            <line x1="${pipeY_svg - radius_svg - 4}" y1="${pipeZ_svg}" x2="${pipeY_svg + radius_svg + 4}" y2="${pipeZ_svg}" stroke="#334155" stroke-width="0.8" stroke-dasharray="2 2" />
-            <line x1="${pipeY_svg}" y1="${pipeZ_svg - radius_svg - 4}" x2="${pipeY_svg}" y2="${pipeZ_svg + radius_svg + 4}" stroke="#334155" stroke-width="0.8" stroke-dasharray="2 2" />
+            <circle cx="${pipeY_svg}" cy="${pipeZ_svg}" r="${radius_svg}" fill="#64748b" fill-opacity="0.25" stroke="#334155" stroke-width="1.8" />
+            <line x1="${pipeY_svg - radius_svg - 6}" y1="${pipeZ_svg}" x2="${pipeY_svg + radius_svg + 6}" y2="${pipeZ_svg}" stroke="#334155" stroke-width="1" stroke-dasharray="3 3" />
+            <line x1="${pipeY_svg}" y1="${pipeZ_svg - radius_svg - 6}" x2="${pipeY_svg}" y2="${pipeZ_svg + radius_svg + 6}" stroke="#334155" stroke-width="1" stroke-dasharray="3 3" />
         `;
     }
     
     // Add Force Arrows
     // 1. Concrete Dead Weight (WA)
-    svgBody += drawArrow(cg_svg_x, cg_svg_y, cg_svg_x, cg_svg_y + 35, '#2563eb', `WA = ${f.WA.toFixed(1)}t`, {x: -18, y: 12});
+    svgBody += drawArrow(cg_svg_x, cg_svg_y, cg_svg_x, cg_svg_y + 40, '#2563eb', `WA = ${f.WA.toFixed(1)}t`, {x: -20, y: 14});
     
     // 2. Block Seismic Inertia (F_WA)
     const f_wa_val = isXZ ? f.F_WA : (p.Kh * f.WA);
     if (Math.abs(f_wa_val) > 0.01) {
-        svgBody += drawArrow(cg_svg_x, cg_svg_y, cg_svg_x + eqDir * 35, cg_svg_y, '#d97706', `F_seismic = ${Math.abs(f_wa_val).toFixed(1)}t`, {x: eqDir > 0 ? 6 : -85, y: -4});
+        svgBody += drawArrow(cg_svg_x, cg_svg_y, cg_svg_x + eqDir * 40, cg_svg_y, '#d97706', `F_seismic = ${Math.abs(f_wa_val).toFixed(1)}t`, {x: eqDir > 0 ? 8 : -95, y: -4});
     }
     
     // 3. Pipe thrust horizontal Rx or Ry
     const H_force_val = isXZ ? cs.Rx : cs.Ry;
     const H_force_lbl = isXZ ? `Rx = ${H_force_val.toFixed(1)}t` : `Ry = ${H_force_val.toFixed(1)}t`;
     if (Math.abs(H_force_val) > 0.01) {
-        const startX = pipe_svg_x - (H_force_val >= 0 ? 35 : -35);
-        svgBody += drawArrow(startX, pipe_svg_y, pipe_svg_x, pipe_svg_y, '#dc2626', H_force_lbl, {x: H_force_val >= 0 ? -60 : 5, y: -4});
+        const startX = pipe_svg_x - (H_force_val >= 0 ? 40 : -40);
+        svgBody += drawArrow(startX, pipe_svg_y, pipe_svg_x, pipe_svg_y, '#dc2626', H_force_lbl, {x: H_force_val >= 0 ? -65 : 6, y: -4});
     }
     
     // 4. Pipe vertical force Rz
     if (Math.abs(cs.Rz) > 0.01) {
-        const startY = pipe_svg_y - (cs.Rz >= 0 ? -30 : 30);
-        svgBody += drawArrow(pipe_svg_x, startY, pipe_svg_x, pipe_svg_y, '#dc2626', `Rz = ${cs.Rz.toFixed(1)}t`, {x: 6, y: cs.Rz >= 0 ? 12 : -4});
+        const startY = pipe_svg_y - (cs.Rz >= 0 ? -35 : 35);
+        svgBody += drawArrow(pipe_svg_x, startY, pipe_svg_x, pipe_svg_y, '#dc2626', `Rz = ${cs.Rz.toFixed(1)}t`, {x: 6, y: cs.Rz >= 0 ? 14 : -4});
     }
     
     // 5. Resultant base reactions
-    // Vertical reaction V (Draw label at the bottom of the arrow to prevent collision)
-    svgBody += drawArrow(x_res_svg, offsetY + 25, x_res_svg, offsetY, '#16a34a', `V = ${Math.abs(cs.totalV).toFixed(1)}t`, {x: 6, y: 25});
+    svgBody += drawArrow(x_res_svg, offsetY + 30, x_res_svg, offsetY, '#16a34a', `V = ${Math.abs(cs.totalV).toFixed(1)}t`, {x: 8, y: 28});
     
     // Friction sliding capacity F_friction = V * lambda
     const F_fric_val = Math.abs(cs.totalV) * p.lambda;
     const slidingDir = cs.totalH >= 0 ? -1.0 : 1.0;
     const fricLabel = `F_fric = ${F_fric_val.toFixed(1)}t`;
-    // Draw label at the tail of the horizontal arrow to prevent collision
-    svgBody += drawArrow(x_res_svg - slidingDir * 35, offsetY, x_res_svg, offsetY, '#16a34a', fricLabel, {x: slidingDir > 0 ? -95 : 20, y: -6});
+    svgBody += drawArrow(x_res_svg - slidingDir * 40, offsetY, x_res_svg, offsetY, '#16a34a', fricLabel, {x: slidingDir > 0 ? -105 : 22, y: -6});
     
     // Anchors
     svgBody += anchorsHtml;
     
     // CG point circle marker
     svgBody += `
-        <circle cx="${cg_svg_x}" cy="${cg_svg_y}" r="3.5" fill="#000000" />
-        <circle cx="${cg_svg_x}" cy="${cg_svg_y}" r="1.5" fill="#ffffff" />
-        <text x="${cg_svg_x + 5}" y="${cg_svg_y + 3}" fill="#000000" font-size="8" font-weight="bold">CG</text>
+        <circle cx="${cg_svg_x}" cy="${cg_svg_y}" r="4" fill="#000000" />
+        <circle cx="${cg_svg_x}" cy="${cg_svg_y}" r="2" fill="#ffffff" />
+        <text x="${cg_svg_x + 6}" y="${cg_svg_y + 4}" fill="#000000" font-size="9" font-weight="bold">CG</text>
     `;
     
     // Dimensions
     // Width dimension
-    svgBody += drawDim(offsetX, offsetY + 32, offsetX + B_dim * scale, offsetY + 32, `B = ${B_dim.toFixed(2)}m`);
+    svgBody += drawDim(offsetX, offsetY + 38, offsetX + B_dim * scale, offsetY + 38, `B = ${B_dim.toFixed(2)}m`);
     // Height dimension
-    svgBody += drawDim(offsetX - 12, offsetY - H_dim * scale, offsetX - 12, offsetY, `H = ${H_dim.toFixed(2)}m`);
+    svgBody += drawDim(offsetX - 15, offsetY - H_dim * scale, offsetX - 15, offsetY, `H = ${H_dim.toFixed(2)}m`);
     // Lever arm y_CG or x_CG
-    svgBody += drawDim(offsetX, offsetY + 42, cg_svg_x, offsetY + 42, `CG_arm = ${cg_x.toFixed(2)}m`, '#2563eb');
+    svgBody += drawDim(offsetX, offsetY + 50, cg_svg_x, offsetY + 50, `CG_arm = ${cg_x.toFixed(2)}m`, '#2563eb');
     // Resultant location e
-    svgBody += drawDim(offsetX + B_dim/2.0 * scale, offsetY + 52, x_res_svg, offsetY + 52, `e = ${cs.e.toFixed(2)}m`, '#16a34a');
+    svgBody += drawDim(offsetX + B_dim/2.0 * scale, offsetY + 60, x_res_svg, offsetY + 60, `e = ${cs.e.toFixed(2)}m`, '#16a34a');
     
     return `
         <svg width="100%" height="100%" viewBox="0 0 ${w} ${h}" style="background-color: #ffffff;">
@@ -958,7 +983,7 @@ function generateFBDSVG(plane) {
                 </style>
             </defs>
             <text x="15" y="22" fill="#0f172a" font-size="11" font-weight="700" letter-spacing="0.5">${plane} FREE BODY DIAGRAM (FBD)</text>
-            <text x="15" y="34" fill="#64748b" font-size="8">Direction of Case: ${cs.caseName} (${cs.eqLabel})</text>
+            <text x="15" y="34" fill="#64748b" font-size="8.5">Direction of Case: ${cs.caseName} (${cs.eqLabel})</text>
             ${svgBody}
         </svg>
     `;
@@ -2497,104 +2522,24 @@ function showRecommendationModal(checkId) {
     modal.querySelector('.modal-card').style.transform = 'scale(1)';
 }
 
-// Render dynamic animated simulator
-function renderSimulator() {
-    const simViewport = document.getElementById('sim-viewport');
-    if (!simViewport) return;
-    
-    let worstSliding = Infinity;
-    let worstEcc = 0;
-    let worstBearing = 0;
-    let worstFot = Infinity;
-    
-    state.results.cases.forEach(c => {
-        if (c.Fs < worstSliding) worstSliding = c.Fs;
-        if (c.e > worstEcc) worstEcc = c.e;
-        if (c.sigma > worstBearing) worstBearing = c.sigma;
-        if (c.Fot < worstFot) worstFot = c.Fot;
-    });
-    
-    const limit_ex = state.params.B / 4.0;
-    const isSlidingFail = worstSliding < 1.2;
-    const isOverturningFail = worstEcc > limit_ex || worstFot < 1.2;
-    const isBearingFail = state.results.cases.some(c => !c.bearingPass);
-    
-    let animClass = 'anim-success';
-    let failOverlayStyle = 'border-color: var(--accent-green);';
-    
-    if (isSlidingFail) {
-        animClass = 'anim-sliding-fail';
-        failOverlayStyle = 'border-color: var(--accent-red); box-shadow: 0 0 20px rgba(255,23,68,0.2)';
-    } else if (isOverturningFail) {
-        animClass = 'anim-overturning-fail';
-        failOverlayStyle = 'border-color: var(--accent-red); box-shadow: 0 0 20px rgba(255,23,68,0.2)';
-    } else if (isBearingFail) {
-        animClass = 'anim-bearing-fail';
-        failOverlayStyle = 'border-color: var(--accent-red); box-shadow: 0 0 20px rgba(255,23,68,0.2)';
+// Interactive Free Body Diagram (FBD) viewport logic
+state.currentFBDPlane = 'XZ';
+function switchFBDPlane(plane) {
+    state.currentFBDPlane = plane;
+    const btnXZ = document.getElementById('sim-btn-xz');
+    const btnYZ = document.getElementById('sim-btn-yz');
+    if (btnXZ && btnYZ) {
+        btnXZ.classList.toggle('active', plane === 'XZ');
+        btnYZ.classList.toggle('active', plane === 'YZ');
     }
-    
-    document.getElementById('failure-animation-box').setAttribute('style', failOverlayStyle);
-    
-    const scale = 30;
-    const offsetX = 80;
-    const offsetY = 250;
-    
-    const c = state.coordinates;
-    const blockPoints = c.xzCoords.map(pt => `${offsetX + pt.x * scale},${offsetY - pt.z * scale}`).join(' ');
-    const f = state.results.forces;
-    const cgPixel = { x: offsetX + f.x_CG * scale, y: offsetY - f.z_CG * scale };
-    
-    let simContent = '';
-    
-    if (state.simPlane === 'xz') {
-        document.getElementById('sim-mode-text').innerText = 'X-Z Profile Plane (Flow plane simulation)';
-        const cgLabel = document.getElementById('sim-cg-label');
-        if (cgLabel) cgLabel.innerText = `CG: [X: ${f.x_CG.toFixed(3)}m, Z: ${f.z_CG.toFixed(3)}m]`;
-        simContent = `
-            <svg width="100%" height="100%">
-                ${state.params.buriedCondition ? `
-                    <rect x="20" y="${offsetY - 6.5 * scale}" width="380" height="${1.5 * scale}" fill="rgba(255, 145, 0, 0.08)" stroke="rgba(255, 145, 0, 0.15)"/>
-                ` : ''}
+    const container = document.getElementById('fbd-interactive-viewport');
+    if (container) {
+        container.innerHTML = generateFBDSVG(plane);
+    }
+}
 
-                <g class="${animClass}">
-                    <polygon points="${blockPoints}" fill="rgba(43, 58, 92, 0.5)" stroke="${animClass === 'anim-success' ? 'var(--accent-green)' : 'var(--accent-red)'}" stroke-width="2.5" />
-                    
-                    <line x1="20" y1="${offsetY - 3.0 * scale}" x2="380" y2="${offsetY - 3.0 * scale}" 
-                        stroke="rgba(0, 242, 254, 0.15)" stroke-width="${scale * state.params.D}" stroke-linecap="round" />
-                    <line x1="20" y1="${offsetY - 3.0 * scale}" x2="380" y2="${offsetY - 3.0 * scale}" 
-                        stroke="var(--accent-cyan)" stroke-width="2" stroke-dasharray="5 5" />
-                    
-                    <circle cx="${cgPixel.x}" cy="${cgPixel.y}" r="5" fill="var(--accent-orange)" />
-                    <line x1="${cgPixel.x}" y1="${cgPixel.y}" x2="${cgPixel.x + 35}" y2="${cgPixel.y + 40}" stroke="var(--accent-red)" stroke-width="2" marker-end="url(#arrow)" />
-                </g>
-                <line x1="10" y1="${offsetY}" x2="420" y2="${offsetY}" stroke="#475569" stroke-width="3" />
-                
-                <defs>
-                    <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--accent-red)" />
-                    </marker>
-                </defs>
-            </svg>
-        `;
-    } else {
-        document.getElementById('sim-mode-text').innerText = 'Y-Z Section Plane (Lateral plane simulation)';
-        const cgLabel = document.getElementById('sim-cg-label');
-        if (cgLabel) cgLabel.innerText = `CG: [Y: ${f.y_CG_stability.toFixed(3)}m, Z: ${f.z_CG.toFixed(3)}m]`;
-        const widthYZ = state.params.B_yz * scale;
-        
-        simContent = `
-            <svg width="100%" height="100%">
-                <g class="${animClass}">
-                    <rect x="${(380 - widthYZ)/2}" y="${offsetY - state.params.H_ab * scale}" width="${widthYZ}" height="${state.params.H_ab * scale}" 
-                        fill="rgba(43, 58, 92, 0.5)" stroke="${animClass === 'anim-success' ? 'var(--accent-green)' : 'var(--accent-red)'}" stroke-width="2.5" />
-                    <circle cx="190" cy="${offsetY - 3.0 * scale}" r="${scale * state.params.D / 2.0}" 
-                        fill="rgba(0, 242, 254, 0.1)" stroke="var(--accent-cyan)" stroke-width="2" />
-                </g>
-                <line x1="10" y1="${offsetY}" x2="380" y2="${offsetY}" stroke="#475569" stroke-width="3" />
-            </svg>
-        `;
-    }
-    simViewport.innerHTML = simContent;
+function renderSimulator() {
+    switchFBDPlane(state.currentFBDPlane || 'XZ');
 }
 
 /**
@@ -3124,66 +3069,60 @@ function generatePrintReportHtml() {
                                     .replace(/stroke="var\(--accent-cyan\)"/g, 'stroke="#0f172a" stroke-width="2"')
                                     .replace(/fill="url\(#pipeGrad\)"/g, 'fill="none" stroke="#475569" stroke-width="3"');
 
-    let forcesRows = '';
-    const forceKeys = [
-        { name: 'Concrete dead weight', symbol: 'WA', fx: 0, fy: 0, fz: -f.WA },
-        { name: 'Pipe & Water weight (Upstream)', symbol: 'W', fx: f.W.x, fy: f.W.y, fz: f.W.z },
-        { name: 'Pipe & Water weight (Downstream)', symbol: 'W\'', fx: f.W_prime.x, fy: f.W_prime.y, fz: f.W_prime.z },
-        { name: 'Pipe dead weight (Upstream)', symbol: 'P1', fx: f.P1.x, fy: f.P1.y, fz: f.P1.z },
-        { name: 'Pipe dead weight (Downstream)', symbol: 'P1\'', fx: f.P1_prime.x, fy: f.P1_prime.y, fz: f.P1_prime.z },
-        { name: 'Hydrodynamic Friction (Upstream)', symbol: 'P2', fx: f.P2.x, fy: f.P2.y, fz: f.P2.z },
-        { name: 'Hydrodynamic Friction (Downstream)', symbol: 'P2\'', fx: f.P2_prime.x, fy: f.P2_prime.y, fz: f.P2_prime.z },
-        { name: 'Centrifugal Vert. Bend', symbol: 'Pv', fx: f.Pv.x, fy: f.Pv.y, fz: f.Pv.z },
-        { name: 'Centrifugal Horiz. Bend', symbol: 'Ph', fx: f.Ph.x, fy: f.Ph.y, fz: f.Ph.z },
-        { name: 'Upstream expansion joint pressure', symbol: 'P3', fx: f.P3.x, fy: f.P3.y, fz: f.P3.z },
-        { name: 'Downstream expansion joint pressure', symbol: 'P3\'', fx: f.P3_prime.x, fy: f.P3_prime.y, fz: f.P3_prime.z },
-        { name: 'Unbalanced vertical bend pressure', symbol: 'Prv', fx: f.Prv.x, fy: f.Prv.y, fz: f.Prv.z },
-        { name: 'Unbalanced horizontal bend pressure', symbol: 'Prh', fx: f.Prh.x, fy: f.Prh.y, fz: f.Prh.z }
-    ];
-    
-    const c1_x = f.P_vec.x + f.F.x + f.F_prime.x;
-    const c1_y = f.P_vec.y + f.F.y + f.F_prime.y;
-    const c1_z = f.P_vec.z + f.F.z + f.F_prime.z;
+    // Table 2.1.1 scalar magnitudes
+    const mag_W = Math.sqrt(f.W.x**2 + f.W.y**2 + f.W.z**2);
+    const mag_W_prime = Math.sqrt(f.W_prime.x**2 + f.W_prime.y**2 + f.W_prime.z**2);
+    const mag_P1 = Math.sqrt(f.P1.x**2 + f.P1.y**2 + f.P1.z**2);
+    const mag_P1_prime = Math.sqrt(f.P1_prime.x**2 + f.P1_prime.y**2 + f.P1_prime.z**2);
+    const mag_P2 = Math.sqrt(f.P2.x**2 + f.P2.y**2 + f.P2.z**2);
+    const mag_P2_prime = Math.sqrt(f.P2_prime.x**2 + f.P2_prime.y**2 + f.P2_prime.z**2);
+    const mag_Pv = Math.sqrt(f.Pv.x**2 + f.Pv.y**2 + f.Pv.z**2);
+    const mag_Ph = Math.sqrt(f.Ph.x**2 + f.Ph.y**2 + f.Ph.z**2);
+    const mag_P3 = Math.sqrt(f.P3.x**2 + f.P3.y**2 + f.P3.z**2);
+    const mag_P3_prime = Math.sqrt(f.P3_prime.x**2 + f.P3_prime.y**2 + f.P3_prime.z**2);
+    const mag_Prv = Math.sqrt(f.Prv.x**2 + f.Prv.y**2 + f.Prv.z**2);
+    const mag_Prh = Math.sqrt(f.Prh.x**2 + f.Prh.y**2 + f.Prh.z**2);
+    const mag_P_vec = Math.sqrt(f.P_vec.x**2 + f.P_vec.y**2 + f.P_vec.z**2);
 
-    const c2_x = f.P_vec.x + f.F.x - f.F_prime.x;
-    const c2_y = f.P_vec.y + f.F.y - f.F_prime.y;
-    const c2_z = f.P_vec.z + f.F.z - f.F_prime.z;
+    const mag_F1 = F1;
+    const mag_F1_prime = F1_prime;
+    const mag_F2 = F2;
+    const mag_F2_prime = F2_prime;
+    const mag_F = Math.sqrt(f.F.x**2 + f.F.y**2 + f.F.z**2);
+    const mag_F_prime = Math.sqrt(f.F_prime.x**2 + f.F_prime.y**2 + f.F_prime.z**2);
 
-    const c3_x = f.P_vec.x - f.F.x + f.F_prime.x;
-    const c3_y = f.P_vec.y - f.F.y + f.F_prime.y;
-    const c3_z = f.P_vec.z - f.F.z + f.F_prime.z;
-
-    const c4_x = f.P_vec.x - f.F.x - f.F_prime.x;
-    const c4_y = f.P_vec.y - f.F.y - f.F_prime.y;
-    const c4_z = f.P_vec.z - f.F.z - f.F_prime.z;
+    const mag_c1 = Math.sqrt(c1_x**2 + c1_y**2 + c1_z**2);
+    const mag_c2 = Math.sqrt(c2_x**2 + c2_y**2 + c2_z**2);
+    const mag_c3 = Math.sqrt(c3_x**2 + c3_y**2 + c3_z**2);
+    const mag_c4 = Math.sqrt(c4_x**2 + c4_y**2 + c4_z**2);
 
     // Table 2.1.1 rows
     const table211_rows = `
-        <tr><td>Pipe & Water weight W</td><td style="font-family:monospace;">W</td><td style="text-align:right;">${fNum(f.W.x, 3)}</td><td style="text-align:right;">${fNum(f.W.y, 3)}</td><td style="text-align:right;">${fNum(f.W.z, 3)}</td></tr>
-        <tr><td>Pipe & Water weight W'</td><td style="font-family:monospace;">W'</td><td style="text-align:right;">${fNum(f.W_prime.x, 3)}</td><td style="text-align:right;">${fNum(f.W_prime.y, 3)}</td><td style="text-align:right;">${fNum(f.W_prime.z, 3)}</td></tr>
-        <tr><td>Pipe shell weight P1</td><td style="font-family:monospace;">P1</td><td style="text-align:right;">${fNum(f.P1.x, 3)}</td><td style="text-align:right;">${fNum(f.P1.y, 3)}</td><td style="text-align:right;">${fNum(f.P1.z, 3)}</td></tr>
-        <tr><td>Pipe shell weight P1'</td><td style="font-family:monospace;">P1'</td><td style="text-align:right;">${fNum(f.P1_prime.x, 3)}</td><td style="text-align:right;">${fNum(f.P1_prime.y, 3)}</td><td style="text-align:right;">${fNum(f.P1_prime.z, 3)}</td></tr>
-        <tr><td>Hydrodynamic friction P2</td><td style="font-family:monospace;">P2</td><td style="text-align:right;">${fNum(f.P2.x, 3)}</td><td style="text-align:right;">${fNum(f.P2.y, 3)}</td><td style="text-align:right;">${fNum(f.P2.z, 3)}</td></tr>
-        <tr><td>Hydrodynamic friction P2'</td><td style="font-family:monospace;">P2'</td><td style="text-align:right;">${fNum(f.P2_prime.x, 3)}</td><td style="text-align:right;">${fNum(f.P2_prime.y, 3)}</td><td style="text-align:right;">${fNum(f.P2_prime.z, 3)}</td></tr>
-        <tr><td>Centrifugal Vert. Bend Pv</td><td style="font-family:monospace;">Pv</td><td style="text-align:right;">${fNum(f.Pv.x, 3)}</td><td style="text-align:right;">${fNum(f.Pv.y, 3)}</td><td style="text-align:right;">${fNum(f.Pv.z, 3)}</td></tr>
-        <tr><td>Centrifugal Horiz. Bend Ph</td><td style="font-family:monospace;">Ph</td><td style="text-align:right;">${fNum(f.Ph.x, 3)}</td><td style="text-align:right;">${fNum(f.Ph.y, 3)}</td><td style="text-align:right;">${fNum(f.Ph.z, 3)}</td></tr>
-        <tr><td>Expansion joint pressure P3</td><td style="font-family:monospace;">P3</td><td style="text-align:right;">${fNum(f.P3.x, 3)}</td><td style="text-align:right;">${fNum(f.P3.y, 3)}</td><td style="text-align:right;">${fNum(f.P3.z, 3)}</td></tr>
-        <tr><td>Expansion joint pressure P3'</td><td style="font-family:monospace;">P3'</td><td style="text-align:right;">${fNum(f.P3_prime.x, 3)}</td><td style="text-align:right;">${fNum(f.P3_prime.y, 3)}</td><td style="text-align:right;">${fNum(f.P3_prime.z, 3)}</td></tr>
-        <tr><td>Unbalanced vertical pressure Prv</td><td style="font-family:monospace;">Prv</td><td style="text-align:right;">${fNum(f.Prv.x, 3)}</td><td style="text-align:right;">${fNum(f.Prv.y, 3)}</td><td style="text-align:right;">${fNum(f.Prv.z, 3)}</td></tr>
-        <tr><td>Unbalanced horizontal pressure Prh</td><td style="font-family:monospace;">Prh</td><td style="text-align:right;">${fNum(f.Prh.x, 3)}</td><td style="text-align:right;">${fNum(f.Prh.y, 3)}</td><td style="text-align:right;">${fNum(f.Prh.z, 3)}</td></tr>
+        <tr><td>Pipe & Water weight W</td><td style="font-family:monospace;">W</td><td style="text-align:right;">${fNum(mag_W, 3)}</td><td style="text-align:right;">${fNum(f.W.x, 3)}</td><td style="text-align:right;">${fNum(f.W.y, 3)}</td><td style="text-align:right;">${fNum(f.W.z, 3)}</td></tr>
+        <tr><td>Pipe & Water weight W'</td><td style="font-family:monospace;">W'</td><td style="text-align:right;">${fNum(mag_W_prime, 3)}</td><td style="text-align:right;">${fNum(f.W_prime.x, 3)}</td><td style="text-align:right;">${fNum(f.W_prime.y, 3)}</td><td style="text-align:right;">${fNum(f.W_prime.z, 3)}</td></tr>
+        <tr><td>Pipe shell weight P1</td><td style="font-family:monospace;">P1</td><td style="text-align:right;">${fNum(mag_P1, 3)}</td><td style="text-align:right;">${fNum(f.P1.x, 3)}</td><td style="text-align:right;">${fNum(f.P1.y, 3)}</td><td style="text-align:right;">${fNum(f.P1.z, 3)}</td></tr>
+        <tr><td>Pipe shell weight P1'</td><td style="font-family:monospace;">P1'</td><td style="text-align:right;">${fNum(mag_P1_prime, 3)}</td><td style="text-align:right;">${fNum(f.P1_prime.x, 3)}</td><td style="text-align:right;">${fNum(f.P1_prime.y, 3)}</td><td style="text-align:right;">${fNum(f.P1_prime.z, 3)}</td></tr>
+        <tr><td>Hydrodynamic friction P2</td><td style="font-family:monospace;">P2</td><td style="text-align:right;">${fNum(mag_P2, 3)}</td><td style="text-align:right;">${fNum(f.P2.x, 3)}</td><td style="text-align:right;">${fNum(f.P2.y, 3)}</td><td style="text-align:right;">${fNum(f.P2.z, 3)}</td></tr>
+        <tr><td>Hydrodynamic friction P2'</td><td style="font-family:monospace;">P2'</td><td style="text-align:right;">${fNum(mag_P2_prime, 3)}</td><td style="text-align:right;">${fNum(f.P2_prime.x, 3)}</td><td style="text-align:right;">${fNum(f.P2_prime.y, 3)}</td><td style="text-align:right;">${fNum(f.P2_prime.z, 3)}</td></tr>
+        <tr><td>Centrifugal Vert. Bend Pv</td><td style="font-family:monospace;">Pv</td><td style="text-align:right;">${fNum(mag_Pv, 3)}</td><td style="text-align:right;">${fNum(f.Pv.x, 3)}</td><td style="text-align:right;">${fNum(f.Pv.y, 3)}</td><td style="text-align:right;">${fNum(f.Pv.z, 3)}</td></tr>
+        <tr><td>Centrifugal Horiz. Bend Ph</td><td style="font-family:monospace;">Ph</td><td style="text-align:right;">${fNum(mag_Ph, 3)}</td><td style="text-align:right;">${fNum(f.Ph.x, 3)}</td><td style="text-align:right;">${fNum(f.Ph.y, 3)}</td><td style="text-align:right;">${fNum(f.Ph.z, 3)}</td></tr>
+        <tr><td>Expansion joint pressure P3</td><td style="font-family:monospace;">P3</td><td style="text-align:right;">${fNum(mag_P3, 3)}</td><td style="text-align:right;">${fNum(f.P3.x, 3)}</td><td style="text-align:right;">${fNum(f.P3.y, 3)}</td><td style="text-align:right;">${fNum(f.P3.z, 3)}</td></tr>
+        <tr><td>Expansion joint pressure P3'</td><td style="font-family:monospace;">P3'</td><td style="text-align:right;">${fNum(mag_P3_prime, 3)}</td><td style="text-align:right;">${fNum(f.P3_prime.x, 3)}</td><td style="text-align:right;">${fNum(f.P3_prime.y, 3)}</td><td style="text-align:right;">${fNum(f.P3_prime.z, 3)}</td></tr>
+        <tr><td>Unbalanced vertical pressure Prv</td><td style="font-family:monospace;">Prv</td><td style="text-align:right;">${fNum(mag_Prv, 3)}</td><td style="text-align:right;">${fNum(f.Prv.x, 3)}</td><td style="text-align:right;">${fNum(f.Prv.y, 3)}</td><td style="text-align:right;">${fNum(f.Prv.z, 3)}</td></tr>
+        <tr><td>Unbalanced horizontal pressure Prh</td><td style="font-family:monospace;">Prh</td><td style="text-align:right;">${fNum(mag_Prh, 3)}</td><td style="text-align:right;">${fNum(f.Prh.x, 3)}</td><td style="text-align:right;">${fNum(f.Prh.y, 3)}</td><td style="text-align:right;">${fNum(f.Prh.z, 3)}</td></tr>
         <tr style="font-weight:bold; background-color:#f1f5f9; border-top:1.5px solid #0f172a;">
-            <td>Total Constant Force Resultant</td><td style="font-family:monospace;">P</td><td style="text-align:right;">${fNum(f.P_vec.x, 3)}</td><td style="text-align:right;">${fNum(f.P_vec.y, 3)}</td><td style="text-align:right;">${fNum(f.P_vec.z, 3)}</td>
+            <td>Total Constant Force Resultant</td><td style="font-family:monospace;">P</td><td style="text-align:right;">${fNum(mag_P_vec, 3)}</td><td style="text-align:right;">${fNum(f.P_vec.x, 3)}</td><td style="text-align:right;">${fNum(f.P_vec.y, 3)}</td><td style="text-align:right;">${fNum(f.P_vec.z, 3)}</td>
         </tr>
-        <tr><td>Support point friction F1</td><td style="font-family:monospace;">F1</td><td style="text-align:right;">${fNum(F1, 3)}</td><td style="text-align:right;">0.000</td><td style="text-align:right;">${fNum(-F1 * Math.sin(delta_val), 3)}</td></tr>
-        <tr><td>Support point friction F1'</td><td style="font-family:monospace;">F1'</td><td style="text-align:right;">${fNum(F1_prime * Math.cos(delta_prime_val) * Math.cos(theta_val), 3)}</td><td style="text-align:right;">${fNum(-F1_prime * Math.cos(delta_prime_val) * Math.sin(theta_val), 3)}</td><td style="text-align:right;">${fNum(-F1_prime * Math.sin(delta_prime_val), 3)}</td></tr>
-        <tr><td>Expansion joint friction F2</td><td style="font-family:monospace;">F2</td><td style="text-align:right;">${fNum(F2 * Math.cos(delta_val), 3)}</td><td style="text-align:right;">0.000</td><td style="text-align:right;">${fNum(-F2 * Math.sin(delta_val), 3)}</td></tr>
-        <tr><td>Expansion joint friction F2'</td><td style="font-family:monospace;">F2'</td><td style="text-align:right;">${fNum(F2_prime * Math.cos(delta_prime_val) * Math.cos(theta_val), 3)}</td><td style="text-align:right;">${fNum(-F2_prime * Math.cos(delta_prime_val) * Math.sin(theta_val), 3)}</td><td style="text-align:right;">${fNum(-F2_prime * Math.sin(delta_prime_val), 3)}</td></tr>
-        <tr style="font-weight:bold; background-color:#f8fafc;"><td>Upstream Friction Sum F</td><td style="font-family:monospace;">F=F1+F2</td><td style="text-align:right;">${fNum(f.F.x, 3)}</td><td style="text-align:right;">${fNum(f.F.y, 3)}</td><td style="text-align:right;">${fNum(f.F.z, 3)}</td></tr>
-        <tr style="font-weight:bold; background-color:#f8fafc;"><td>Downstream Friction Sum F'</td><td style="font-family:monospace;">F'=F1'+F2'</td><td style="text-align:right;">${fNum(f.F_prime.x, 3)}</td><td style="text-align:right;">${fNum(f.F_prime.y, 3)}</td><td style="text-align:right;">${fNum(f.F_prime.z, 3)}</td></tr>
-        <tr style="font-weight:bold; background-color:#e2e8f0; border-top:1.5px solid #0f172a;"><td>Case 1 Total (P + F + F')</td><td style="font-family:monospace;">Case-1</td><td style="text-align:right;">${fNum(c1_x, 3)}</td><td style="text-align:right;">${fNum(c1_y, 3)}</td><td style="text-align:right;">${fNum(c1_z, 3)}</td></tr>
-        <tr style="font-weight:bold; background-color:#e2e8f0;"><td>Case 2 Total (P + F - F')</td><td style="font-family:monospace;">Case-2</td><td style="text-align:right;">${fNum(c2_x, 3)}</td><td style="text-align:right;">${fNum(c2_y, 3)}</td><td style="text-align:right;">${fNum(c2_z, 3)}</td></tr>
-        <tr style="font-weight:bold; background-color:#e2e8f0;"><td>Case 3 Total (P - F + F')</td><td style="font-family:monospace;">Case-3</td><td style="text-align:right;">${fNum(c3_x, 3)}</td><td style="text-align:right;">${fNum(c3_y, 3)}</td><td style="text-align:right;">${fNum(c3_z, 3)}</td></tr>
-        <tr style="font-weight:bold; background-color:#e2e8f0;"><td>Case 4 Total (P - F - F')</td><td style="font-family:monospace;">Case-4</td><td style="text-align:right;">${fNum(c4_x, 3)}</td><td style="text-align:right;">${fNum(c4_y, 3)}</td><td style="text-align:right;">${fNum(c4_z, 3)}</td></tr>
+        <tr><td>Support point friction F1</td><td style="font-family:monospace;">F1</td><td style="text-align:right;">${fNum(mag_F1, 3)}</td><td style="text-align:right;">${fNum(F1, 3)}</td><td style="text-align:right;">0.000</td><td style="text-align:right;">${fNum(-F1 * Math.sin(delta_val), 3)}</td></tr>
+        <tr><td>Support point friction F1'</td><td style="font-family:monospace;">F1'</td><td style="text-align:right;">${fNum(mag_F1_prime, 3)}</td><td style="text-align:right;">${fNum(F1_prime * Math.cos(delta_prime_val) * Math.cos(theta_val), 3)}</td><td style="text-align:right;">${fNum(-F1_prime * Math.cos(delta_prime_val) * Math.sin(theta_val), 3)}</td><td style="text-align:right;">${fNum(-F1_prime * Math.sin(delta_prime_val), 3)}</td></tr>
+        <tr><td>Expansion joint friction F2</td><td style="font-family:monospace;">F2</td><td style="text-align:right;">${fNum(mag_F2, 3)}</td><td style="text-align:right;">${fNum(F2 * Math.cos(delta_val), 3)}</td><td style="text-align:right;">0.000</td><td style="text-align:right;">${fNum(-F2 * Math.sin(delta_val), 3)}</td></tr>
+        <tr><td>Expansion joint friction F2'</td><td style="font-family:monospace;">F2'</td><td style="text-align:right;">${fNum(mag_F2_prime, 3)}</td><td style="text-align:right;">${fNum(F2_prime * Math.cos(delta_prime_val) * Math.cos(theta_val), 3)}</td><td style="text-align:right;">${fNum(-F2_prime * Math.cos(delta_prime_val) * Math.sin(theta_val), 3)}</td><td style="text-align:right;">${fNum(-F2_prime * Math.sin(delta_prime_val), 3)}</td></tr>
+        <tr style="font-weight:bold; background-color:#f8fafc;"><td>Upstream Friction Sum F</td><td style="font-family:monospace;">F=F1+F2</td><td style="text-align:right;">${fNum(mag_F, 3)}</td><td style="text-align:right;">${fNum(f.F.x, 3)}</td><td style="text-align:right;">${fNum(f.F.y, 3)}</td><td style="text-align:right;">${fNum(f.F.z, 3)}</td></tr>
+        <tr style="font-weight:bold; background-color:#f8fafc;"><td>Downstream Friction Sum F'</td><td style="font-family:monospace;">F'=F1'+F2'</td><td style="text-align:right;">${fNum(mag_F_prime, 3)}</td><td style="text-align:right;">${fNum(f.F_prime.x, 3)}</td><td style="text-align:right;">${fNum(f.F_prime.y, 3)}</td><td style="text-align:right;">${fNum(f.F_prime.z, 3)}</td></tr>
+        <tr style="font-weight:bold; background-color:#e2e8f0; border-top:1.5px solid #0f172a;"><td>Case 1 Total (P + F + F')</td><td style="font-family:monospace;">Case-1</td><td style="text-align:right;">${fNum(mag_c1, 3)}</td><td style="text-align:right;">${fNum(c1_x, 3)}</td><td style="text-align:right;">${fNum(c1_y, 3)}</td><td style="text-align:right;">${fNum(c1_z, 3)}</td></tr>
+        <tr style="font-weight:bold; background-color:#e2e8f0;"><td>Case 2 Total (P + F - F')</td><td style="font-family:monospace;">Case-2</td><td style="text-align:right;">${fNum(mag_c2, 3)}</td><td style="text-align:right;">${fNum(c2_x, 3)}</td><td style="text-align:right;">${fNum(c2_y, 3)}</td><td style="text-align:right;">${fNum(c2_z, 3)}</td></tr>
+        <tr style="font-weight:bold; background-color:#e2e8f0;"><td>Case 3 Total (P - F + F')</td><td style="font-family:monospace;">Case-3</td><td style="text-align:right;">${fNum(mag_c3, 3)}</td><td style="text-align:right;">${fNum(c3_x, 3)}</td><td style="text-align:right;">${fNum(c3_y, 3)}</td><td style="text-align:right;">${fNum(c3_z, 3)}</td></tr>
+        <tr style="font-weight:bold; background-color:#e2e8f0;"><td>Case 4 Total (P - F - F')</td><td style="font-family:monospace;">Case-4</td><td style="text-align:right;">${fNum(mag_c4, 3)}</td><td style="text-align:right;">${fNum(c4_x, 3)}</td><td style="text-align:right;">${fNum(c4_y, 3)}</td><td style="text-align:right;">${fNum(c4_z, 3)}</td></tr>
     `;
 
     let xzCasesRows = '';
@@ -3398,17 +3337,17 @@ function generatePrintReportHtml() {
                     </tbody>
                 </table>
 
-                <h3 style="font-size: 12px; font-weight: 700; color: #1e293b; margin: 10px 0 6px 0;">(B) Acting Force Formulations on Anchor Block</h3>
-                <div style="font-size: 9.5px; line-height: 1.5; color: #334155; display: flex; flex-direction: column; gap: 6px;">
-                    <div><strong>(i) Thrust perpendicular to pipe axis due to dead weight of pipe and water:</strong> W = 1/2&middot;(w+s)&middot;l&middot;cos(&delta;), W' = 1/2&middot;(w+s')&middot;l'&middot;cos(&delta;')</div>
-                    <div><strong>(ii) Thrust along pipe axis due to dead weight of pipe:</strong> P1 = s&middot;L&middot;sin(&delta;), P1' = s'&middot;L'&middot;sin(&delta;')</div>
-                    <div><strong>(iii) Thrust due to friction of water in pipe:</strong> P2 = (2&middot;f&middot;Q&sup2; / (g&middot;&pi;&middot;D&sup3;))&middot;L&middot;&gamma;_w, P2' = (2&middot;f&middot;Q&sup2; / (g&middot;&pi;&middot;D&sup3;))&middot;L'&middot;&gamma;_w</div>
-                    <div><strong>(iv) Centrifugal force acting on bend point:</strong> Pv = 2&middot;(v&sup2;/g)&middot;A&middot;sin(&phi;/2)&middot;&gamma;_w, Ph = 2&middot;(v&sup2;/g)&middot;A&middot;sin(&theta;/2)&middot;&gamma;_w</div>
-                    <div><strong>(v) Thrust due to inner pressure acting on expansion joint:</strong> P3 = He&middot;&pi;&middot;D&middot;t&middot;&gamma;_w, P3' = He'&middot;&pi;&middot;D&middot;t'&middot;&gamma;_w</div>
-                    <div><strong>(vi) Unbalanced force due to water pressure acting on bend point:</strong> Prv = 2&middot;H&middot;A&middot;sin(&phi;/2)&middot;&gamma;_w, Prh = 2&middot;H&middot;A&middot;sin(&theta;/2)&middot;&gamma;_w</div>
-                    <div><strong>(vii) Thrust due to temperature change:</strong> F = F1 + F2 = c&middot;(w+s)&middot;(L - l/2)&middot;cos(&delta;) + fe&middot;&pi;&middot;(D+2t), F' = F1' + F2' = c&middot;(w+s')&middot;(L' - l'/2)&middot;cos(&delta;') + fe&middot;&pi;&middot;(D+2t')</div>
-                    <div><strong>(viii) Dead weight of anchor block:</strong> WA = wc &times; V_concrete</div>
-                    <div><strong>(ix) Seismic force:</strong> F_seismic = F_WA + F_p, where F_WA = Kh&middot;WA, F_p = Kh&middot;[(w+s)&middot;l/2 + (w+s')&middot;l'/2]</div>
+                <h3 style="font-size: 12px; font-weight: 700; color: #1e293b; margin: 10px 0 6px 0;">(B) Acting Force Detailed Step-by-Step Calculations</h3>
+                <div style="font-size: 9.5px; line-height: 1.6; color: #334155; display: flex; flex-direction: column; gap: 6px;">
+                    <div><strong>(i) Perpendicular Thrust W & W':</strong> W = 0.5 &times; (${w.toFixed(3)} + ${s.toFixed(3)}) &times; ${p.l.toFixed(3)} &times; cos(${deg(delta_val).toFixed(2)}&deg;) = <strong>${f.W_val.toFixed(3)} ton</strong> | W' = 0.5 &times; (${w.toFixed(3)} + ${s_prime.toFixed(3)}) &times; ${p.l_prime.toFixed(3)} &times; cos(${deg(delta_prime_val).toFixed(2)}&deg;) = <strong>${f.W_prime_val.toFixed(3)} ton</strong></div>
+                    <div><strong>(ii) Pipe Axis Dead Weight P1 & P1':</strong> P1 = ${s.toFixed(3)} &times; ${p.L.toFixed(3)} &times; sin(${deg(delta_val).toFixed(2)}&deg;) = <strong>${f.P1_val.toFixed(3)} ton</strong> | P1' = ${s_prime.toFixed(3)} &times; ${p.L_prime.toFixed(3)} &times; sin(${deg(delta_prime_val).toFixed(2)}&deg;) = <strong>${f.P1_prime_val.toFixed(3)} ton</strong></div>
+                    <div><strong>(iii) Hydrodynamic Friction P2 & P2':</strong> P2 = (2 &times; ${p.f.toFixed(2)} &times; ${p.Q.toFixed(2)}&sup2; / (9.80665 &times; &pi; &times; ${p.D.toFixed(3)}&sup3;)) &times; ${p.L.toFixed(3)} = <strong>${f.P2_val.toFixed(3)} ton</strong> | P2' = (2 &times; ${p.f.toFixed(2)} &times; ${p.Q.toFixed(2)}&sup2; / (9.80665 &times; &pi; &times; ${p.D.toFixed(3)}&sup3;)) &times; ${p.L_prime.toFixed(3)} = <strong>${f.P2_prime_val.toFixed(3)} ton</strong></div>
+                    <div><strong>(iv) Centrifugal Forces Pv & Ph:</strong> Pv = 2 &times; (${v.toFixed(3)}&sup2;/9.80665) &times; ${A_pipe.toFixed(3)} &times; sin(${deg(Math.abs(phi_val)/2.0).toFixed(2)}&deg;) &times; 1.0 = <strong>${Pv_val.toFixed(3)} ton</strong> | Ph = 2 &times; (${v.toFixed(3)}&sup2;/9.80665) &times; ${A_pipe.toFixed(3)} &times; sin(${p.theta.toFixed(2)}&deg;/2) &times; 1.0 = <strong>${Ph_val.toFixed(3)} ton</strong></div>
+                    <div><strong>(v) Expansion Joint Hydrostatic Pressure P3 & P3':</strong> P3 = ${p.He.toFixed(1)} &times; &pi; &times; ${p.D.toFixed(3)} &times; ${p.t.toFixed(4)} &times; 1.0 = <strong>${f.P3_val.toFixed(3)} ton</strong> | P3' = ${p.He_prime.toFixed(1)} &times; &pi; &times; ${p.D.toFixed(3)} &times; ${p.t_prime.toFixed(4)} &times; 1.0 = <strong>${f.P3_prime_val.toFixed(3)} ton</strong></div>
+                    <div><strong>(vi) Unbalanced Bend Pressure Prv & Prh:</strong> Prv = 2 &times; ${p.H.toFixed(1)} &times; ${A_pipe.toFixed(3)} &times; sin(${deg(Math.abs(phi_val)/2.0).toFixed(2)}&deg;) &times; 1.0 = <strong>${Prv_val.toFixed(3)} ton</strong> | Prh = 2 &times; ${p.H.toFixed(1)} &times; ${A_pipe.toFixed(3)} &times; sin(${p.theta.toFixed(2)}&deg;/2) &times; 1.0 = <strong>${Prh_val.toFixed(3)} ton</strong></div>
+                    <div><strong>(vii) Temperature Expansion/Friction F & F':</strong> F1 = ${F1.toFixed(3)} ton, F2 = ${F2.toFixed(3)} ton &rarr; F = <strong>${F_total.toFixed(3)} ton</strong> | F1' = ${F1_prime.toFixed(3)} ton, F2' = ${F2_prime.toFixed(3)} ton &rarr; F' = <strong>${F_prime.toFixed(3)} ton</strong></div>
+                    <div><strong>(viii) Dead Weight of Anchor Block WA:</strong> WA = ${p.wc.toFixed(2)} &times; (${f.A_profile.toFixed(3)} &times; ${p.W.toFixed(2)} - ${A_pipe.toFixed(4)} &times; ${f.L_internal.toFixed(3)}) = <strong>${f.WA.toFixed(3)} ton</strong></div>
+                    <div><strong>(ix) Seismic Inertia Forces FWA & Fp:</strong> FWA = ${p.Kh.toFixed(2)} &times; ${f.WA.toFixed(3)} = <strong>${f.F_WA.toFixed(3)} ton</strong> | Fp = ${p.Kh.toFixed(2)} &times; [(${w.toFixed(3)}+${s.toFixed(3)})&times;${p.l.toFixed(3)}/2 + (${w.toFixed(3)}+${s_prime.toFixed(3)})&times;${p.l_prime.toFixed(3)}/2] = <strong>${f.F_p.toFixed(3)} ton</strong></div>
                 </div>
 
                 <h3 style="font-size: 12px; font-weight: 700; color: #1e293b; margin: 12px 0 6px 0;">(C) Check of Safety Criteria</h3>
@@ -3480,7 +3419,7 @@ function generatePrintReportHtml() {
                     </tbody>
                 </table>
                 <p style="font-size: 8.5px; color: #475569; margin: 0 0 12px 0;">
-                    * The analysis is conducted on 2 planes: <strong>x-z plane</strong> (flow direction) and <strong>y-z plane</strong> (transverse direction) under static and earthquake conditions (x and -x for x-z plane, y and -y for y-z plane).
+                    * The analysis is conducted on 2 planes: <strong>x-z plane</strong> (flow direction) and <strong>y-z plane</strong> (transverse direction) under earthquake conditions (x and -x for x-z plane, y and -y for y-z plane), giving 16 total seismic cases.
                 </p>
 
                 <h3 style="font-size: 12px; font-weight: 700; color: #1e293b; margin: 10px 0 6px 0;">(B) Dead Weight, Seismic Forces & Center of Gravity</h3>
@@ -3497,6 +3436,7 @@ function generatePrintReportHtml() {
                         <tr style="background-color: #f1f5f9; border-bottom: 1.5px solid #0f172a;">
                             <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: left;">Force Component</th>
                             <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: left;">Symbol</th>
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: right;">Magnitude [ton]</th>
                             <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: right;">x-direction [ton]</th>
                             <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: right;">y-direction [ton]</th>
                             <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: right;">z-direction [ton]</th>

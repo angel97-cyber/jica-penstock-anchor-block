@@ -469,30 +469,17 @@
                         <!-- STEP 4: Results & Animations -->
                         <div class="wizard-pane" id="pane-step-4">
                             <div class="dashboard-grid">
-                                <!-- visual simulator -->
+                                <!-- Free Body Diagram (FBD) Card -->
                                 <div class="card card-visual">
                                     <div class="card-header">
-                                        <h3>3D-Plane Safety Simulator & Animation</h3>
+                                        <h3>Free Body Diagram (FBD) & Force Vector Analysis</h3>
                                         <div class="visual-toggles">
-                                            <button class="btn btn-outline btn-sm active" id="sim-btn-xz">X-Z Profile</button>
-                                            <button class="btn btn-outline btn-sm" id="sim-btn-yz">Y-Z Section</button>
+                                            <button class="btn btn-outline btn-sm active" id="sim-btn-xz" onclick="switchFBDPlane('XZ')">X-Z Profile (Flow Plane)</button>
+                                            <button class="btn btn-outline btn-sm" id="sim-btn-yz" onclick="switchFBDPlane('YZ')">Y-Z Section (Transverse Plane)</button>
                                         </div>
                                     </div>
-                                    <div class="visual-canvas-container">
-                                        <div class="failure-overlay" id="failure-animation-box">
-                                            <div class="sim-stage" id="sim-viewport"></div>
-                                        </div>
-                                        <div class="sim-controls">
-                                            <span class="sim-mode-indicator" id="sim-mode-text">X-Z Profile (Flow Plane)</span>
-                                            <div class="sim-legend" style="display: flex; width: 100%; align-items: center; justify-content: space-between;">
-                                                <div style="display: flex; gap: 16px;">
-                                                    <span class="legend-item"><span class="legend-dot cg"></span>CG</span>
-                                                    <span class="legend-item"><span class="legend-dot water"></span>Pipe & Flow</span>
-                                                    <span class="legend-item"><span class="legend-dot force"></span>Resultant Force</span>
-                                                </div>
-                                                <div id="sim-cg-label" style="font-size: 10px; font-weight: 700; color: var(--accent-cyan); letter-spacing: 0.5px;">CG: [X: 0.00m, Z: 0.00m]</div>
-                                            </div>
-                                        </div>
+                                    <div class="visual-canvas-container" id="fbd-interactive-viewport" style="display: flex; align-items: center; justify-content: center; background: #ffffff; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); min-height: 350px;">
+                                        <!-- Interactive SVG FBD renders here -->
                                     </div>
                                 </div>
 
