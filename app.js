@@ -1831,6 +1831,8 @@ window.deleteGroundRow = deleteGroundRow;
 // Step 3: YZ Cross section Coordinates
 function renderYZCoordsTable() {
     const tbody = document.querySelector('#table-yz-coords tbody');
+    if (!tbody) return;
+    if (document.activeElement && tbody.contains(document.activeElement)) return;
     tbody.innerHTML = '';
     
     state.coordinates.yzCoords.forEach((pt, idx) => {
@@ -1948,30 +1950,42 @@ function validateAndDraw() {
     const zs = c.xzCoords.map(pt => pt.z);
     const H_height = Math.max(...zs) - (Math.min(...zs) || 0.0);
     
-    // Set auto-generated cross-section concrete geometry
-    c.yzCoords = [
-        { y: 0.0, z: 0.0 },
-        { y: W_width, z: 0.0 },
-        { y: W_width, z: H_height },
-        { y: 0.0, z: H_height }
-    ];
-    
-    // Synchronize parameters
-    p.B_yz = W_width;
-    p.W = W_width;
-    p.H_ab = H_height;
-    
-    // Auto-center pipe horizontally and match bend IP elevation vertically
-    if (c.pipeXZ && c.pipeXZ[1]) {
-        c.pipeCenterYZ.y = W_width / 2.0;
-        c.pipeCenterYZ.z = c.pipeXZ[1].z;
+    // Set cross-section concrete geometry (initial fallback if empty)
+    if (!c.yzCoords || c.yzCoords.length === 0) {
+        c.yzCoords = [
+            { y: 0.0, z: 0.0 },
+            { y: W_width, z: 0.0 },
+            { y: W_width, z: H_height },
+            { y: 0.0, z: H_height }
+        ];
     }
     
-    // Update YZ input fields in Step 3 so they match calculated values
+    // Compute width B_yz from actual yzCoords polygon bounds
+    const ys_yz = c.yzCoords.map(pt => pt.y || 0.0);
+    const yz_width = Math.max(0.1, Math.max(...ys_yz) - Math.min(...ys_yz));
+    
+    // Synchronize parameters
+    p.B_yz = yz_width;
+    p.W = yz_width;
+    p.H_ab = H_height;
+    
+    // Auto-center pipe horizontally and match bend IP elevation vertically ONLY if not set
+    if (!c.pipeCenterYZ || typeof c.pipeCenterYZ.y !== 'number' || isNaN(c.pipeCenterYZ.y)) {
+        c.pipeCenterYZ = {
+            y: W_width / 2.0,
+            z: (c.pipeXZ && c.pipeXZ[1]) ? c.pipeXZ[1].z : H_height / 2.0
+        };
+    }
+    
+    // Update YZ input fields in Step 3 so they match calculated values if not currently focused
     const pipeCenterYInput = document.getElementById('pipe-center-y');
-    if (pipeCenterYInput) pipeCenterYInput.value = c.pipeCenterYZ.y.toFixed(3);
+    if (pipeCenterYInput && document.activeElement !== pipeCenterYInput) {
+        pipeCenterYInput.value = c.pipeCenterYZ.y;
+    }
     const pipeCenterZInput = document.getElementById('pipe-center-z');
-    if (pipeCenterZInput) pipeCenterZInput.value = c.pipeCenterYZ.z.toFixed(3);
+    if (pipeCenterZInput && document.activeElement !== pipeCenterZInput) {
+        pipeCenterZInput.value = c.pipeCenterYZ.z;
+    }
     
     // Render YZ table so the user sees the generated coordinates
     renderYZCoordsTable();
