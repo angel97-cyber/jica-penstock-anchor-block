@@ -610,10 +610,10 @@
                     <div class="card card-draw-preview" id="global-blueprints-card" style="height: 100%; display: flex; flex-direction: column; gap: 16px; padding: 16px; background-color: #060911; border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden;">
                         <!-- View Toggles -->
                         <div class="blueprint-toggles" style="display: flex; gap: 6px; flex-shrink: 0; background: rgba(10,15,30,0.6); padding: 4px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 4px;">
-                            <button class="btn btn-sm" id="btn-view-plan" style="flex: 1; font-size: 11px; padding: 6px 0; background: var(--accent-cyan); color: #000; font-weight: 600;">Plan (XY)</button>
+                            <button class="btn btn-outline btn-sm" id="btn-view-plan" style="flex: 1; font-size: 11px; padding: 6px 0; background: var(--accent-cyan); color: #000; font-weight: 600;">Plan (XY)</button>
                             <button class="btn btn-outline btn-sm" id="btn-view-profile" style="flex: 1; font-size: 11px; padding: 6px 0;">Profile (XZ)</button>
                             <button class="btn btn-outline btn-sm" id="btn-view-section" style="flex: 1; font-size: 11px; padding: 6px 0;">Section (YZ)</button>
-                            <button class="btn btn-outline btn-sm" id="btn-view-all" style="flex: 1; font-size: 11px; padding: 6px 0;">Show All</button>
+                            <button class="btn btn-outline btn-sm" id="btn-view-3d" style="flex: 1; font-size: 11px; padding: 6px 0;">3D View & CG</button>
                         </div>
                         
                         <div style="flex: 1; display: flex; flex-direction: column; overflow-y: auto; gap: 16px; height: 100%;" id="blueprints-scroll-container">
@@ -634,6 +634,12 @@
                                     <h3 style="font-size: 11px; font-weight: 700; color: #fff;">Section Blueprint View (Y-Z)</h3>
                                 </div>
                                 <div class="canvas-wrapper" id="section-svg-viewport" style="flex: 1; min-height: 0; height: 100%;"></div>
+                            </div>
+                            <div id="wrapper-3d-view" style="flex: 1; min-height: 0; display: none; flex-direction: column;">
+                                <div class="card-header" style="border-bottom: none; padding: 0 0 10px 0; flex-shrink: 0;">
+                                    <h3 style="font-size: 11px; font-weight: 700; color: #fff;">3D Isometric View & CG Coordinates</h3>
+                                </div>
+                                <div class="canvas-wrapper" id="3d-svg-viewport" style="flex: 1; min-height: 0; height: 100%; display: flex; align-items: center; justify-content: center; background: #060911; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);"></div>
                             </div>
                         </div>
                         <div class="error-banner-container" id="error-banner-global" style="flex-shrink: 0;"></div>

@@ -990,6 +990,173 @@ function generateFBDSVG(plane) {
 }
 
 /**
+ * Generates an Isometric 3D Wireframe SVG rendering of the Anchor Block with CG point and (X,Y,Z) coordinates.
+ */
+function generate3DSVG() {
+    const p = state.params || {};
+    const c = state.coordinates || {};
+    const f = (state.results && state.results.forces) ? state.results.forces : { WA: 100, x_CG: (p.B||5)/2, y_CG_stability: (p.B_yz||4)/2, z_CG: (p.H_ab||3)/2 };
+    
+    const B = (typeof p.B === 'number' && !isNaN(p.B) && p.B > 0) ? p.B : 5.0;
+    const W = (typeof p.B_yz === 'number' && !isNaN(p.B_yz) && p.B_yz > 0) ? p.B_yz : 4.0;
+    const H = (typeof p.H_ab === 'number' && !isNaN(p.H_ab) && p.H_ab > 0) ? p.H_ab : 3.0;
+    
+    const x_CG = (typeof f.x_CG === 'number' && !isNaN(f.x_CG)) ? f.x_CG : B / 2.0;
+    const y_CG = (typeof f.y_CG_stability === 'number' && !isNaN(f.y_CG_stability)) ? f.y_CG_stability : W / 2.0;
+    const z_CG = (typeof f.z_CG === 'number' && !isNaN(f.z_CG)) ? f.z_CG : H / 2.0;
+    
+    const svgW = 550;
+    const svgH = 340;
+    
+    const scale = Math.min(220 / Math.max(B, W, H), 38);
+    const offsetX = 200;
+    const offsetY = 260;
+    
+    const project = (x, y, z) => {
+        const px = offsetX + (x * 0.866 - y * 0.707) * scale;
+        const py = offsetY - (z * 0.95) + (y * 0.35 * scale) - (x * 0.30 * scale);
+        return { x: isNaN(px) ? offsetX : px, y: isNaN(py) ? offsetY : py };
+    };
+
+    const xzPts = (c.xzCoords && c.xzCoords.length >= 3)
+        ? c.xzCoords.filter(pt => pt && typeof pt.x === 'number' && !isNaN(pt.x) && typeof pt.z === 'number' && !isNaN(pt.z))
+        : [{x: 0, z: 0}, {x: B, z: 0}, {x: B, z: H}, {x: 0, z: H}];
+        
+    const validPts = xzPts.length >= 3 ? xzPts : [{x: 0, z: 0}, {x: B, z: 0}, {x: B, z: H}, {x: 0, z: H}];
+    const z_min = Math.min(...validPts.map(pt => pt.z || 0));
+    
+    const frontPts = validPts.map(pt => ({ ...project(pt.x, 0, pt.z - z_min), orig: pt }));
+    const backPts = validPts.map(pt => ({ ...project(pt.x, W, pt.z - z_min), orig: pt }));
+    
+    const frontPolyStr = frontPts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+    const backPolyStr = backPts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+    
+    let sideFacesSvg = '';
+    for (let i = 0; i < validPts.length; i++) {
+        const nextIdx = (i + 1) % validPts.length;
+        const p1 = frontPts[i];
+        const p2 = frontPts[nextIdx];
+        const p3 = backPts[nextIdx];
+        const p4 = backPts[i];
+        
+        sideFacesSvg += `
+            <polygon points="${p1.x.toFixed(1)},${p1.y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)} ${p3.x.toFixed(1)},${p3.y.toFixed(1)} ${p4.x.toFixed(1)},${p4.y.toFixed(1)}" 
+                     fill="url(#sideGradient)" stroke="#475569" stroke-width="1" />
+        `;
+    }
+    
+    const cgProj = project(x_CG, y_CG, z_CG - z_min);
+    const cgBaseProj = project(x_CG, y_CG, 0);
+    const cgXProj = project(x_CG, 0, 0);
+    const cgYProj = project(0, y_CG, 0);
+
+    let pipe3DSvg = '';
+    if (c.pipeXZ && c.pipeXZ.length >= 2 && c.pipeXZ[0] && c.pipeXZ[1]) {
+        const pipe1 = project(c.pipeXZ[0].x, W/2.0, c.pipeXZ[0].z - z_min);
+        const pipe2 = project(c.pipeXZ[1].x, W/2.0, c.pipeXZ[1].z - z_min);
+        const pipe3 = c.pipeXZ[2] ? project(c.pipeXZ[2].x, W/2.0, c.pipeXZ[2].z - z_min) : pipe2;
+        
+        pipe3DSvg = `
+            <polyline points="${pipe1.x.toFixed(1)},${pipe1.y.toFixed(1)} ${pipe2.x.toFixed(1)},${pipe2.y.toFixed(1)} ${pipe3.x.toFixed(1)},${pipe3.y.toFixed(1)}" 
+                      fill="none" stroke="#00f2fe" stroke-width="6" stroke-opacity="0.4" stroke-linecap="round" />
+            <polyline points="${pipe1.x.toFixed(1)},${pipe1.y.toFixed(1)} ${pipe2.x.toFixed(1)},${pipe2.y.toFixed(1)} ${pipe3.x.toFixed(1)},${pipe3.y.toFixed(1)}" 
+                      fill="none" stroke="#00f2fe" stroke-width="1.8" stroke-dasharray="4 2" />
+        `;
+    }
+
+    let vertexLabelsSvg = '';
+    const keyVertices = [
+        { name: 'P1(0,0,0)', x: 0, y: 0, z: 0 },
+        { name: `P2(${B.toFixed(1)},0,0)`, x: B, y: 0, z: 0 },
+        { name: `P3(${B.toFixed(1)},${W.toFixed(1)},0)`, x: B, y: W, z: 0 },
+        { name: `P4(0,${W.toFixed(1)},0)`, x: 0, y: W, z: 0 }
+    ];
+    
+    keyVertices.forEach(v => {
+        const vp = project(v.x, v.y, v.z);
+        vertexLabelsSvg += `
+            <circle cx="${vp.x.toFixed(1)}" cy="${vp.y.toFixed(1)}" r="3" fill="#cbd5e1" stroke="#0f172a" stroke-width="1" />
+            <text x="${(vp.x + 5).toFixed(1)}" y="${(vp.y + 3).toFixed(1)}" fill="#94a3b8" font-size="8" font-family="monospace">${v.name}</text>
+        `;
+    });
+
+    return `
+        <svg width="100%" height="100%" viewBox="0 0 ${svgW} ${svgH}" style="background-color: #060911;">
+            <defs>
+                <linearGradient id="frontGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#1e293b" stop-opacity="0.95" />
+                    <stop offset="100%" stop-color="#0f172a" stop-opacity="0.95" />
+                </linearGradient>
+                <linearGradient id="sideGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#334155" stop-opacity="0.75" />
+                    <stop offset="100%" stop-color="#1e293b" stop-opacity="0.75" />
+                </linearGradient>
+                <linearGradient id="backGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#0f172a" stop-opacity="0.4" />
+                    <stop offset="100%" stop-color="#020617" stop-opacity="0.4" />
+                </linearGradient>
+                <radialGradient id="cgGlow" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="#ff9100" stop-opacity="1" />
+                    <stop offset="100%" stop-color="#ff1744" stop-opacity="0.2" />
+                </radialGradient>
+            </defs>
+
+            <!-- Coordinate Axes Origin -->
+            <g opacity="0.6">
+                ${(() => {
+                    const o = project(0, 0, 0);
+                    const axX = project(B + 1.5, 0, 0);
+                    const axY = project(0, W + 1.5, 0);
+                    const axZ = project(0, 0, H + 1.2);
+                    return `
+                        <line x1="${o.x.toFixed(1)}" y1="${o.y.toFixed(1)}" x2="${axX.x.toFixed(1)}" y2="${axX.y.toFixed(1)}" stroke="#ef4444" stroke-width="1.5" />
+                        <text x="${(axX.x + 4).toFixed(1)}" y="${axX.y.toFixed(1)}" fill="#ef4444" font-size="9" font-weight="bold">X</text>
+                        <line x1="${o.x.toFixed(1)}" y1="${o.y.toFixed(1)}" x2="${axY.x.toFixed(1)}" y2="${axY.y.toFixed(1)}" stroke="#22c55e" stroke-width="1.5" />
+                        <text x="${(axY.x - 10).toFixed(1)}" y="${(axY.y + 10).toFixed(1)}" fill="#22c55e" font-size="9" font-weight="bold">Y</text>
+                        <line x1="${o.x.toFixed(1)}" y1="${o.y.toFixed(1)}" x2="${axZ.x.toFixed(1)}" y2="${axZ.y.toFixed(1)}" stroke="#3b82f6" stroke-width="1.5" />
+                        <text x="${axZ.x.toFixed(1)}" y="${(axZ.y - 4).toFixed(1)}" fill="#3b82f6" font-size="9" font-weight="bold">Z</text>
+                    `;
+                })()}
+            </g>
+
+            <!-- Back Face -->
+            <polygon points="${backPolyStr}" fill="url(#backGradient)" stroke="#334155" stroke-width="1" stroke-dasharray="3 2" />
+
+            <!-- Connecting Side Quads -->
+            ${sideFacesSvg}
+
+            <!-- Front Face -->
+            <polygon points="${frontPolyStr}" fill="url(#frontGradient)" stroke="#38bdf8" stroke-width="1.8" />
+
+            <!-- Pipe Centerline -->
+            ${pipe3DSvg}
+
+            <!-- CG Drop Lines -->
+            <line x1="${cgProj.x.toFixed(1)}" y1="${cgProj.y.toFixed(1)}" x2="${cgBaseProj.x.toFixed(1)}" y2="${cgBaseProj.y.toFixed(1)}" 
+                  stroke="#ff9100" stroke-width="1.2" stroke-dasharray="3 3" />
+            <line x1="${cgBaseProj.x.toFixed(1)}" y1="${cgBaseProj.y.toFixed(1)}" x2="${cgXProj.x.toFixed(1)}" y2="${cgXProj.y.toFixed(1)}" 
+                  stroke="#ff9100" stroke-width="1" stroke-dasharray="2 2" />
+            <line x1="${cgBaseProj.x.toFixed(1)}" y1="${cgBaseProj.y.toFixed(1)}" x2="${cgYProj.x.toFixed(1)}" y2="${cgYProj.y.toFixed(1)}" 
+                  stroke="#ff9100" stroke-width="1" stroke-dasharray="2 2" />
+
+            <!-- Vertex Coordinates Labels -->
+            ${vertexLabelsSvg}
+
+            <!-- CG Center Marker -->
+            <circle cx="${cgProj.x.toFixed(1)}" cy="${cgProj.y.toFixed(1)}" r="8" fill="url(#cgGlow)" />
+            <circle cx="${cgProj.x.toFixed(1)}" cy="${cgProj.y.toFixed(1)}" r="3.5" fill="#ff9100" stroke="#ffffff" stroke-width="1.5" />
+
+            <!-- CG Floating Label Badge -->
+            <g transform="translate(${Math.min(svgW - 190, Math.max(10, cgProj.x + 12))}, ${Math.max(25, Math.min(svgH - 45, cgProj.y - 25))})">
+                <rect x="0" y="0" width="175" height="36" rx="6" fill="rgba(15, 23, 42, 0.9)" stroke="#ff9100" stroke-width="1.5" />
+                <text x="8" y="14" fill="#ff9100" font-size="9.5" font-weight="800">CENTER OF GRAVITY (CG)</text>
+                <text x="8" y="28" fill="#00f2fe" font-size="9" font-weight="700" font-family="monospace">X:${x_CG.toFixed(3)}m Y:${y_CG.toFixed(3)}m Z:${z_CG.toFixed(3)}m</text>
+            </g>
+        </svg>
+    `;
+}
+
+/**
  * Step-by-Step detailed Case calculation card
  */
 function renderDetailedCalculationCard() {
@@ -1806,7 +1973,7 @@ function validateAndDraw() {
 }
 
 function updateBlueprintViewToggles() {
-    const views = ['plan', 'profile', 'section', 'all'];
+    const views = ['plan', 'profile', 'section', '3d'];
     views.forEach(v => {
         const btn = document.getElementById(`btn-view-${v}`);
         if (!btn) return;
@@ -1826,18 +1993,18 @@ function updateBlueprintViewToggles() {
     const planW = document.getElementById('wrapper-plan-view');
     const profileW = document.getElementById('wrapper-profile-view');
     const sectionW = document.getElementById('wrapper-section-view');
+    const view3DW = document.getElementById('wrapper-3d-view');
     
-    if (planW) planW.style.display = (state.activeBlueprintView === 'plan' || state.activeBlueprintView === 'all') ? 'flex' : 'none';
-    if (profileW) profileW.style.display = (state.activeBlueprintView === 'profile' || state.activeBlueprintView === 'all') ? 'flex' : 'none';
-    if (sectionW) sectionW.style.display = (state.activeBlueprintView === 'section' || state.activeBlueprintView === 'all') ? 'flex' : 'none';
-    
-    // Remove divider borders if rendering in single-view mode
-    if (state.activeBlueprintView !== 'all') {
-        if (planW) planW.style.borderBottom = 'none';
-        if (profileW) profileW.style.borderBottom = 'none';
-    } else {
-        if (planW) planW.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
-        if (profileW) profileW.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+    if (planW) planW.style.display = (state.activeBlueprintView === 'plan') ? 'flex' : 'none';
+    if (profileW) profileW.style.display = (state.activeBlueprintView === 'profile') ? 'flex' : 'none';
+    if (sectionW) sectionW.style.display = (state.activeBlueprintView === 'section') ? 'flex' : 'none';
+    if (view3DW) view3DW.style.display = (state.activeBlueprintView === '3d') ? 'flex' : 'none';
+
+    if (state.activeBlueprintView === '3d') {
+        const viewport3D = document.getElementById('3d-svg-viewport');
+        if (viewport3D) {
+            viewport3D.innerHTML = generate3DSVG();
+        }
     }
 }
 window.updateBlueprintViewToggles = updateBlueprintViewToggles;
@@ -3091,6 +3258,22 @@ function generatePrintReportHtml() {
     const mag_F = Math.sqrt(f.F.x**2 + f.F.y**2 + f.F.z**2);
     const mag_F_prime = Math.sqrt(f.F_prime.x**2 + f.F_prime.y**2 + f.F_prime.z**2);
 
+    const c1_x = f.P_vec.x + f.F.x + f.F_prime.x;
+    const c1_y = f.P_vec.y + f.F.y + f.F_prime.y;
+    const c1_z = f.P_vec.z + f.F.z + f.F_prime.z;
+
+    const c2_x = f.P_vec.x + f.F.x - f.F_prime.x;
+    const c2_y = f.P_vec.y + f.F.y - f.F_prime.y;
+    const c2_z = f.P_vec.z + f.F.z - f.F_prime.z;
+
+    const c3_x = f.P_vec.x - f.F.x + f.F_prime.x;
+    const c3_y = f.P_vec.y - f.F.y + f.F_prime.y;
+    const c3_z = f.P_vec.z - f.F.z + f.F_prime.z;
+
+    const c4_x = f.P_vec.x - f.F.x - f.F_prime.x;
+    const c4_y = f.P_vec.y - f.F.y - f.F_prime.y;
+    const c4_z = f.P_vec.z - f.F.z - f.F_prime.z;
+
     const mag_c1 = Math.sqrt(c1_x**2 + c1_y**2 + c1_z**2);
     const mag_c2 = Math.sqrt(c2_x**2 + c2_y**2 + c2_z**2);
     const mag_c3 = Math.sqrt(c3_x**2 + c3_y**2 + c3_z**2);
@@ -3339,11 +3522,11 @@ function generatePrintReportHtml() {
 
                 <h3 style="font-size: 12px; font-weight: 700; color: #1e293b; margin: 10px 0 6px 0;">(B) Acting Force Detailed Step-by-Step Calculations</h3>
                 <div style="font-size: 9.5px; line-height: 1.6; color: #334155; display: flex; flex-direction: column; gap: 6px;">
-                    <div><strong>(i) Perpendicular Thrust W & W':</strong> W = 0.5 &times; (${w.toFixed(3)} + ${s.toFixed(3)}) &times; ${p.l.toFixed(3)} &times; cos(${deg(delta_val).toFixed(2)}&deg;) = <strong>${f.W_val.toFixed(3)} ton</strong> | W' = 0.5 &times; (${w.toFixed(3)} + ${s_prime.toFixed(3)}) &times; ${p.l_prime.toFixed(3)} &times; cos(${deg(delta_prime_val).toFixed(2)}&deg;) = <strong>${f.W_prime_val.toFixed(3)} ton</strong></div>
-                    <div><strong>(ii) Pipe Axis Dead Weight P1 & P1':</strong> P1 = ${s.toFixed(3)} &times; ${p.L.toFixed(3)} &times; sin(${deg(delta_val).toFixed(2)}&deg;) = <strong>${f.P1_val.toFixed(3)} ton</strong> | P1' = ${s_prime.toFixed(3)} &times; ${p.L_prime.toFixed(3)} &times; sin(${deg(delta_prime_val).toFixed(2)}&deg;) = <strong>${f.P1_prime_val.toFixed(3)} ton</strong></div>
-                    <div><strong>(iii) Hydrodynamic Friction P2 & P2':</strong> P2 = (2 &times; ${p.f.toFixed(2)} &times; ${p.Q.toFixed(2)}&sup2; / (9.80665 &times; &pi; &times; ${p.D.toFixed(3)}&sup3;)) &times; ${p.L.toFixed(3)} = <strong>${f.P2_val.toFixed(3)} ton</strong> | P2' = (2 &times; ${p.f.toFixed(2)} &times; ${p.Q.toFixed(2)}&sup2; / (9.80665 &times; &pi; &times; ${p.D.toFixed(3)}&sup3;)) &times; ${p.L_prime.toFixed(3)} = <strong>${f.P2_prime_val.toFixed(3)} ton</strong></div>
-                    <div><strong>(iv) Centrifugal Forces Pv & Ph:</strong> Pv = 2 &times; (${v.toFixed(3)}&sup2;/9.80665) &times; ${A_pipe.toFixed(3)} &times; sin(${deg(Math.abs(phi_val)/2.0).toFixed(2)}&deg;) &times; 1.0 = <strong>${Pv_val.toFixed(3)} ton</strong> | Ph = 2 &times; (${v.toFixed(3)}&sup2;/9.80665) &times; ${A_pipe.toFixed(3)} &times; sin(${p.theta.toFixed(2)}&deg;/2) &times; 1.0 = <strong>${Ph_val.toFixed(3)} ton</strong></div>
-                    <div><strong>(v) Expansion Joint Hydrostatic Pressure P3 & P3':</strong> P3 = ${p.He.toFixed(1)} &times; &pi; &times; ${p.D.toFixed(3)} &times; ${p.t.toFixed(4)} &times; 1.0 = <strong>${f.P3_val.toFixed(3)} ton</strong> | P3' = ${p.He_prime.toFixed(1)} &times; &pi; &times; ${p.D.toFixed(3)} &times; ${p.t_prime.toFixed(4)} &times; 1.0 = <strong>${f.P3_prime_val.toFixed(3)} ton</strong></div>
+                    <div><strong>(i) Perpendicular Thrust W & W':</strong> W = 0.5 &times; (${w.toFixed(3)} + ${s.toFixed(3)}) &times; ${p.l.toFixed(3)} &times; cos(${deg(delta_val).toFixed(2)}&deg;) = <strong>${mag_W.toFixed(3)} ton</strong> | W' = 0.5 &times; (${w.toFixed(3)} + ${s_prime.toFixed(3)}) &times; ${p.l_prime.toFixed(3)} &times; cos(${deg(delta_prime_val).toFixed(2)}&deg;) = <strong>${mag_W_prime.toFixed(3)} ton</strong></div>
+                    <div><strong>(ii) Pipe Axis Dead Weight P1 & P1':</strong> P1 = ${s.toFixed(3)} &times; ${p.L.toFixed(3)} &times; sin(${deg(delta_val).toFixed(2)}&deg;) = <strong>${mag_P1.toFixed(3)} ton</strong> | P1' = ${s_prime.toFixed(3)} &times; ${p.L_prime.toFixed(3)} &times; sin(${deg(delta_prime_val).toFixed(2)}&deg;) = <strong>${mag_P1_prime.toFixed(3)} ton</strong></div>
+                    <div><strong>(iii) Hydrodynamic Friction P2 & P2':</strong> P2 = (2 &times; ${p.f.toFixed(2)} &times; ${p.Q.toFixed(2)}&sup2; / (9.80665 &times; &pi; &times; ${p.D.toFixed(3)}&sup3;)) &times; ${p.L.toFixed(3)} = <strong>${mag_P2.toFixed(3)} ton</strong> | P2' = (2 &times; ${p.f.toFixed(2)} &times; ${p.Q.toFixed(2)}&sup2; / (9.80665 &times; &pi; &times; ${p.D.toFixed(3)}&sup3;)) &times; ${p.L_prime.toFixed(3)} = <strong>${mag_P2_prime.toFixed(3)} ton</strong></div>
+                    <div><strong>(iv) Centrifugal Forces Pv & Ph:</strong> Pv = 2 &times; (${v_water.toFixed(3)}&sup2;/9.80665) &times; ${A_pipe.toFixed(3)} &times; sin(${deg(Math.abs(phi_val)/2.0).toFixed(2)}&deg;) &times; 1.0 = <strong>${Pv_val.toFixed(3)} ton</strong> | Ph = 2 &times; (${v_water.toFixed(3)}&sup2;/9.80665) &times; ${A_pipe.toFixed(3)} &times; sin(${p.theta.toFixed(2)}&deg;/2) &times; 1.0 = <strong>${Ph_val.toFixed(3)} ton</strong></div>
+                    <div><strong>(v) Expansion Joint Hydrostatic Pressure P3 & P3':</strong> P3 = ${p.He.toFixed(1)} &times; &pi; &times; ${p.D.toFixed(3)} &times; ${p.t.toFixed(4)} &times; 1.0 = <strong>${mag_P3.toFixed(3)} ton</strong> | P3' = ${p.He_prime.toFixed(1)} &times; &pi; &times; ${p.D.toFixed(3)} &times; ${p.t_prime.toFixed(4)} &times; 1.0 = <strong>${mag_P3_prime.toFixed(3)} ton</strong></div>
                     <div><strong>(vi) Unbalanced Bend Pressure Prv & Prh:</strong> Prv = 2 &times; ${p.H.toFixed(1)} &times; ${A_pipe.toFixed(3)} &times; sin(${deg(Math.abs(phi_val)/2.0).toFixed(2)}&deg;) &times; 1.0 = <strong>${Prv_val.toFixed(3)} ton</strong> | Prh = 2 &times; ${p.H.toFixed(1)} &times; ${A_pipe.toFixed(3)} &times; sin(${p.theta.toFixed(2)}&deg;/2) &times; 1.0 = <strong>${Prh_val.toFixed(3)} ton</strong></div>
                     <div><strong>(vii) Temperature Expansion/Friction F & F':</strong> F1 = ${F1.toFixed(3)} ton, F2 = ${F2.toFixed(3)} ton &rarr; F = <strong>${F_total.toFixed(3)} ton</strong> | F1' = ${F1_prime.toFixed(3)} ton, F2' = ${F2_prime.toFixed(3)} ton &rarr; F' = <strong>${F_prime.toFixed(3)} ton</strong></div>
                     <div><strong>(viii) Dead Weight of Anchor Block WA:</strong> WA = ${p.wc.toFixed(2)} &times; (${f.A_profile.toFixed(3)} &times; ${p.W.toFixed(2)} - ${A_pipe.toFixed(4)} &times; ${f.L_internal.toFixed(3)}) = <strong>${f.WA.toFixed(3)} ton</strong></div>
@@ -3382,6 +3565,12 @@ function generatePrintReportHtml() {
                             </div>
                         </div>
                     </div>
+                </div>
+            <!-- 3D View & Center of Gravity -->
+            <div class="report-section" style="margin-bottom: 25px; page-break-inside: avoid;">
+                <h2 style="font-size: 14px; font-weight: 800; color: #0f172a; text-transform: uppercase; border-bottom: 2px solid #0f172a; padding-bottom: 4px; margin-bottom: 12px;">3D Isometric View & Center of Gravity (CG) Spatial Position</h2>
+                <div style="border: 1px solid #cbd5e1; padding: 5px; background: #060911; height: 320px; overflow: hidden; border-radius: 4px;">
+                    ${generate3DSVG()}
                 </div>
             </div>
 
