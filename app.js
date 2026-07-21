@@ -434,18 +434,21 @@ function calculateStability() {
     const W_val = 0.5 * (w + s) * p.l * Math.cos(delta_val);
     const W_prime_val = 0.5 * (w + s_prime) * p.l_prime * Math.cos(delta_prime_val);
     
-    const W_vec = { x: W_val * Math.sin(delta_val), y: 0.0, z: -W_val * Math.cos(delta_val) };
+    // Corrected Sign Convention: Downward normal weight forces point in negative x and negative z directions
+    const W_vec = { x: -W_val * Math.sin(delta_val), y: 0.0, z: -W_val * Math.cos(delta_val) };
     const W_prime_vec = {
-        x: W_prime_val * Math.sin(delta_prime_val) * Math.cos(theta_val),
+        x: -W_prime_val * Math.sin(delta_prime_val) * Math.cos(theta_val),
         y: -W_prime_val * Math.sin(delta_prime_val) * Math.sin(theta_val),
         z: -W_prime_val * Math.cos(delta_prime_val)
     };
     
     const P1_val = s * p.L * Math.sin(delta_val);
     const P1_prime_val = s_prime * p.L_prime * Math.sin(delta_prime_val);
-    const P1_vec = { x: -P1_val * Math.cos(delta_val), y: 0.0, z: -P1_val * Math.sin(delta_val) };
+    
+    // Corrected Sign Convention: Sliding gravity forces push downstream (+x)
+    const P1_vec = { x: P1_val * Math.cos(delta_val), y: 0.0, z: -P1_val * Math.sin(delta_val) };
     const P1_prime_vec = {
-        x: -P1_prime_val * Math.cos(delta_prime_val) * Math.cos(theta_val),
+        x: P1_prime_val * Math.cos(delta_prime_val) * Math.cos(theta_val),
         y: -P1_prime_val * Math.cos(delta_prime_val) * Math.sin(theta_val),
         z: -P1_prime_val * Math.sin(delta_prime_val)
     };
@@ -453,30 +456,38 @@ function calculateStability() {
     const gamma_w = 1.0; // t/m³ fresh water density
     const P2_val = (2 * p.f * (p.Q ** 2) / (g * Math.PI * (p.D ** 3))) * p.L * gamma_w;
     const P2_prime_val = (2 * p.f * (p.Q ** 2) / (g * Math.PI * (p.D ** 3))) * p.L_prime * gamma_w;
-    const P2_vec = { x: P2_val * Math.cos(delta_val), y: 0.0, z: P2_val * Math.sin(delta_val) };
+    
+    // Corrected Sign Convention: Fluid friction acts along slope in downward flow direction (-z)
+    const P2_vec = { x: P2_val * Math.cos(delta_val), y: 0.0, z: -P2_val * Math.sin(delta_val) };
     const P2_prime_vec = {
         x: P2_prime_val * Math.cos(delta_prime_val) * Math.cos(theta_val),
         y: -P2_prime_val * Math.cos(delta_prime_val) * Math.sin(theta_val),
-        z: P2_prime_val * Math.sin(delta_prime_val)
+        z: -P2_prime_val * Math.sin(delta_prime_val)
     };
     
     const Pv_val = 2 * (v_water ** 2) / g * A_pipe * Math.sin(Math.abs(phi_val) / 2.0) * gamma_w;
     const Ph_val = 2 * (v_water ** 2) / g * A_pipe * Math.sin(theta_val / 2.0) * gamma_w;
-    const Pv_vec = { x: -Pv_val * Math.sin(Math.abs(phi_val) / 2.0), y: 0.0, z: Pv_val * Math.cos(Math.abs(phi_val) / 2.0) };
+    
+    // Corrected Sign Convention: Centrifugal force acts outwards (upwards +z and downstream +x on a downward curve)
+    const Pv_vec = { x: Pv_val * Math.sin(Math.abs(phi_val) / 2.0), y: 0.0, z: Pv_val * Math.cos(Math.abs(phi_val) / 2.0) };
     const Ph_vec = { x: Ph_val * Math.sin(theta_val / 2.0), y: Ph_val * Math.cos(theta_val / 2.0), z: 0.0 };
     
     const P3_val = p.He * Math.PI * p.D * p.t * gamma_w;
     const P3_prime_val = p.He_prime * Math.PI * p.D * p.t_prime * gamma_w;
-    const P3_vec = { x: P3_val * Math.cos(delta_val), y: 0.0, z: P3_val * Math.sin(delta_val) };
+    
+    // Corrected Sign Convention: Upstream pressure pushes downstream (+x, -z). Downstream pressure pushes back upstream (-x, +y, +z)
+    const P3_vec = { x: P3_val * Math.cos(delta_val), y: 0.0, z: -P3_val * Math.sin(delta_val) };
     const P3_prime_vec = {
-        x: P3_prime_val * Math.cos(delta_prime_val) * Math.cos(theta_val),
-        y: -P3_prime_val * Math.cos(delta_prime_val) * Math.sin(theta_val),
+        x: -P3_prime_val * Math.cos(delta_prime_val) * Math.cos(theta_val),
+        y: P3_prime_val * Math.cos(delta_prime_val) * Math.sin(theta_val),
         z: P3_prime_val * Math.sin(delta_prime_val)
     };
     
     const Prv_val = 2 * p.H * A_pipe * Math.sin(Math.abs(phi_val) / 2.0) * gamma_w;
     const Prh_val = 2 * p.H * A_pipe * Math.sin(theta_val / 2.0) * gamma_w;
-    const Prv_vec = { x: -Prv_val * Math.sin(Math.abs(phi_val) / 2.0), y: 0.0, z: Prv_val * Math.cos(Math.abs(phi_val) / 2.0) };
+    
+    // Corrected Sign Convention: Unbalanced pressure acts outwards (upwards +z and downstream +x)
+    const Prv_vec = { x: Prv_val * Math.sin(Math.abs(phi_val) / 2.0), y: 0.0, z: Prv_val * Math.cos(Math.abs(phi_val) / 2.0) };
     const Prh_vec = { x: Prh_val * Math.sin(theta_val / 2.0), y: Prh_val * Math.cos(theta_val / 2.0), z: 0.0 };
     
     const P_vec = {
@@ -570,12 +581,12 @@ function calculateStability() {
             const limit_e = B_x / 4.0;
             const eccentricityPass = e < limit_e;
             
-            // JICA Safety against sliding (seismic limit is 1.2)
+            // JICA Safety against sliding (seismic limit is 1.2) - Geotechnical parameters overridden under strict JICA Audit Mode
             const d_embed = Math.max(0.0, (state.coordinates.groundCoords[state.coordinates.groundCoords.length - 1].z - z_min));
             const phi_rad = rad(p.soil_friction_angle || 30.0);
             const K_p = (1.0 + Math.sin(phi_rad)) / (1.0 - Math.sin(phi_rad));
-            const P_p = p.buriedCondition ? (0.5 * K_p * (p.soil_unit_weight || 1.8) * (d_embed ** 2) * p.W) : 0.0;
-            const R_cohesion = p.buriedCondition ? ((p.soil_cohesion || 1.5) * A_base) : 0.0;
+            const P_p = (p.buriedCondition && !state.jicaAuditMode) ? (0.5 * K_p * (p.soil_unit_weight || 1.8) * (d_embed ** 2) * p.W) : 0.0;
+            const R_cohesion = (p.buriedCondition && !state.jicaAuditMode) ? ((p.soil_cohesion || 1.5) * A_base) : 0.0;
             
             const Fs = (Math.abs(totalV_clamped) * p.lambda + R_key_val + V_allow_anchors + P_p + R_cohesion) / Math.abs(totalH);
             const slidingPass = Fs >= 1.2;
@@ -676,8 +687,8 @@ function calculateStability() {
             const d_embed = Math.max(0.0, (state.coordinates.groundCoords[state.coordinates.groundCoords.length - 1].z - z_min));
             const phi_rad = rad(p.soil_friction_angle || 30.0);
             const K_p = (1.0 + Math.sin(phi_rad)) / (1.0 - Math.sin(phi_rad));
-            const P_p = p.buriedCondition ? (0.5 * K_p * (p.soil_unit_weight || 1.8) * (d_embed ** 2) * p.B) : 0.0;
-            const R_cohesion = p.buriedCondition ? ((p.soil_cohesion || 1.5) * A_base) : 0.0;
+            const P_p = (p.buriedCondition && !state.jicaAuditMode) ? (0.5 * K_p * (p.soil_unit_weight || 1.8) * (d_embed ** 2) * p.B) : 0.0;
+            const R_cohesion = (p.buriedCondition && !state.jicaAuditMode) ? ((p.soil_cohesion || 1.5) * A_base) : 0.0;
             
             const Fs = (Math.abs(totalV_clamped) * p.lambda + R_key_val + V_allow_anchors + P_p + R_cohesion) / Math.abs(totalH);
             const slidingPass = Fs >= 1.2;
@@ -2826,6 +2837,8 @@ function loadPreset(key) {
     document.getElementById('param-soil-friction-angle').value = state.params.soil_friction_angle || 30.0;
     
     document.getElementById('buried-condition-toggle').checked = state.params.buriedCondition;
+    const jicaToggle = document.getElementById('jica-audit-toggle');
+    if (jicaToggle) jicaToggle.checked = state.jicaAuditMode || false;
     document.getElementById('mitigation-toggle').checked = state.params.mitigation_active || false;
     document.getElementById('mitigation-inputs-panel').style.display = (state.params.mitigation_active) ? 'block' : 'none';
     document.getElementById('mitigation-h-key').value = state.params.h_key || 0.0;
@@ -2976,6 +2989,14 @@ function initEvents() {
         state.params.buriedCondition = e.target.checked;
         validateAndDraw();
     });
+
+    const jicaToggle = document.getElementById('jica-audit-toggle');
+    if (jicaToggle) {
+        jicaToggle.addEventListener('change', (e) => {
+            state.jicaAuditMode = e.target.checked;
+            validateAndDraw();
+        });
+    }
 
     document.getElementById('mitigation-toggle').addEventListener('change', (e) => {
         state.params.mitigation_active = e.target.checked;
@@ -3296,7 +3317,7 @@ function generatePrintReportHtml() {
         <tr style="font-weight:bold; background-color:#f1f5f9; border-top:1.5px solid #0f172a;">
             <td>Total Constant Force Resultant</td><td style="font-family:monospace;">P</td><td style="text-align:right;">${fNum(mag_P_vec, 3)}</td><td style="text-align:right;">${fNum(f.P_vec.x, 3)}</td><td style="text-align:right;">${fNum(f.P_vec.y, 3)}</td><td style="text-align:right;">${fNum(f.P_vec.z, 3)}</td>
         </tr>
-        <tr><td>Support point friction F1</td><td style="font-family:monospace;">F1</td><td style="text-align:right;">${fNum(mag_F1, 3)}</td><td style="text-align:right;">${fNum(F1, 3)}</td><td style="text-align:right;">0.000</td><td style="text-align:right;">${fNum(-F1 * Math.sin(delta_val), 3)}</td></tr>
+        <tr><td>Support point friction F1</td><td style="font-family:monospace;">F1</td><td style="text-align:right;">${fNum(mag_F1, 3)}</td><td style="text-align:right;">${fNum(F1 * Math.cos(delta_val), 3)}</td><td style="text-align:right;">0.000</td><td style="text-align:right;">${fNum(-F1 * Math.sin(delta_val), 3)}</td></tr>
         <tr><td>Support point friction F1'</td><td style="font-family:monospace;">F1'</td><td style="text-align:right;">${fNum(mag_F1_prime, 3)}</td><td style="text-align:right;">${fNum(F1_prime * Math.cos(delta_prime_val) * Math.cos(theta_val), 3)}</td><td style="text-align:right;">${fNum(-F1_prime * Math.cos(delta_prime_val) * Math.sin(theta_val), 3)}</td><td style="text-align:right;">${fNum(-F1_prime * Math.sin(delta_prime_val), 3)}</td></tr>
         <tr><td>Expansion joint friction F2</td><td style="font-family:monospace;">F2</td><td style="text-align:right;">${fNum(mag_F2, 3)}</td><td style="text-align:right;">${fNum(F2 * Math.cos(delta_val), 3)}</td><td style="text-align:right;">0.000</td><td style="text-align:right;">${fNum(-F2 * Math.sin(delta_val), 3)}</td></tr>
         <tr><td>Expansion joint friction F2'</td><td style="font-family:monospace;">F2'</td><td style="text-align:right;">${fNum(mag_F2_prime, 3)}</td><td style="text-align:right;">${fNum(F2_prime * Math.cos(delta_prime_val) * Math.cos(theta_val), 3)}</td><td style="text-align:right;">${fNum(-F2_prime * Math.cos(delta_prime_val) * Math.sin(theta_val), 3)}</td><td style="text-align:right;">${fNum(-F2_prime * Math.sin(delta_prime_val), 3)}</td></tr>
@@ -3642,11 +3663,14 @@ function generatePrintReportHtml() {
                     <thead>
                         <tr style="background-color: #f1f5f9; border-bottom: 1.5px solid #0f172a;">
                             <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: left;">Case</th>
-                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: left;">Earthquake / Load</th>
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: left;">EQ / Load</th>
                             <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: left;">Combination</th>
-                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: right;">Eccentricity e (m)</th>
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: right;">Total V [t]</th>
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: right;">Total H [t]</th>
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: right;">e [m] / Limit</th>
                             <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: right;">Sliding Fs</th>
-                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: right;">Bearing &sigma;max (t/m&sup2;)</th>
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: right;">Overturning Fot</th>
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: right;">Bearing &sigma;max [t/m&sup2;]</th>
                             <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: center;">Status</th>
                         </tr>
                     </thead>
@@ -3660,11 +3684,14 @@ function generatePrintReportHtml() {
                     <thead>
                         <tr style="background-color: #f1f5f9; border-bottom: 1.5px solid #0f172a;">
                             <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: left;">Case</th>
-                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: left;">Earthquake / Load</th>
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: left;">EQ / Load</th>
                             <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: left;">Combination</th>
-                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: right;">Eccentricity e (m)</th>
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: right;">Total V [t]</th>
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: right;">Total H [t]</th>
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: right;">e [m] / Limit</th>
                             <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: right;">Sliding Fs</th>
-                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: right;">Bearing &sigma;max (t/m&sup2;)</th>
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: right;">Overturning Fot</th>
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: right;">Bearing &sigma;max [t/m&sup2;]</th>
                             <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: center;">Status</th>
                         </tr>
                     </thead>
