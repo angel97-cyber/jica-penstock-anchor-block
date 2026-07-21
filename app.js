@@ -359,17 +359,19 @@ function calculateStability() {
     const theta_val = magProduct > 0.0001 ? Math.acos(Math.max(-1.0, Math.min(1.0, dot_prod / magProduct))) : 0.0;
     p.theta = deg(theta_val);
     
-    // Vertical angles delta, delta' from profile pipe coordinates
+    // Vertical angles delta, delta' from profile pipe coordinates (signed: positive = descending)
     const dx_up = Math.abs(c.pipeXZ[1].x - c.pipeXZ[0].x);
     const dx_down = Math.abs(c.pipeXZ[2].x - c.pipeXZ[1].x);
+    const dz_up = c.pipeXZ[0].z - c.pipeXZ[1].z;
+    const dz_down = c.pipeXZ[1].z - c.pipeXZ[2].z;
     
-    const delta_val = Math.atan(Math.abs(c.pipeXZ[0].z - c.pipeXZ[1].z) / (dx_up || 0.001));
-    const delta_prime_val = Math.atan(Math.abs(c.pipeXZ[1].z - c.pipeXZ[2].z) / (dx_down || 0.001));
+    const delta_val = Math.atan2(dz_up, dx_up || 0.001);
+    const delta_prime_val = Math.atan2(dz_down, dx_down || 0.001);
     p.delta = deg(delta_val);
     p.delta_prime = deg(delta_prime_val);
     
-    // intersection angle
-    const phi_val = Math.abs(delta_val - delta_prime_val);
+    // Signed vertical deflection angle
+    const phi_val = delta_val - delta_prime_val;
     
     // --- 2. Pipe Derived Weights ---
     const A_pipe = Math.PI * (p.D ** 2) / 4.0;
@@ -408,7 +410,13 @@ function calculateStability() {
     let WA = V_concrete * p.wc;
     
     if (p.buriedCondition) {
-        WA += p.B * p.W * 1.5 * 1.8; // Soil surcharge cover weight
+        let soilCoverDepth = 1.5;
+        if (c.groundCoords && c.groundCoords.length > 0) {
+            const blockTopZ = Math.max(...c.xzCoords.map(pt => pt.z));
+            const avgGroundZ = c.groundCoords.reduce((sum, pt) => sum + pt.z, 0) / c.groundCoords.length;
+            soilCoverDepth = Math.max(0.0, avgGroundZ - blockTopZ);
+        }
+        WA += p.B * p.W * soilCoverDepth * (p.soil_unit_weight || 1.8);
     }
     
     const x_CG = Math.abs(Cx);
@@ -442,8 +450,9 @@ function calculateStability() {
         z: -P1_prime_val * Math.sin(delta_prime_val)
     };
     
-    const P2_val = (2 * p.f * (p.Q ** 2) / (g * Math.PI * (p.D ** 3))) * p.L;
-    const P2_prime_val = (2 * p.f * (p.Q ** 2) / (g * Math.PI * (p.D ** 3))) * p.L_prime;
+    const gamma_w = 1.0; // t/m³ fresh water density
+    const P2_val = (2 * p.f * (p.Q ** 2) / (g * Math.PI * (p.D ** 3))) * p.L * gamma_w;
+    const P2_prime_val = (2 * p.f * (p.Q ** 2) / (g * Math.PI * (p.D ** 3))) * p.L_prime * gamma_w;
     const P2_vec = { x: P2_val * Math.cos(delta_val), y: 0.0, z: P2_val * Math.sin(delta_val) };
     const P2_prime_vec = {
         x: P2_prime_val * Math.cos(delta_prime_val) * Math.cos(theta_val),
@@ -451,13 +460,13 @@ function calculateStability() {
         z: P2_prime_val * Math.sin(delta_prime_val)
     };
     
-    const Pv_val = 2 * (v_water ** 2) / g * A_pipe * Math.sin(phi_val / 2.0);
-    const Ph_val = 2 * (v_water ** 2) / g * A_pipe * Math.sin(theta_val / 2.0);
-    const Pv_vec = { x: -Pv_val * Math.sin(phi_val / 2.0), y: 0.0, z: Pv_val * Math.cos(phi_val / 2.0) };
+    const Pv_val = 2 * (v_water ** 2) / g * A_pipe * Math.sin(Math.abs(phi_val) / 2.0) * gamma_w;
+    const Ph_val = 2 * (v_water ** 2) / g * A_pipe * Math.sin(theta_val / 2.0) * gamma_w;
+    const Pv_vec = { x: -Pv_val * Math.sin(Math.abs(phi_val) / 2.0), y: 0.0, z: Pv_val * Math.cos(Math.abs(phi_val) / 2.0) };
     const Ph_vec = { x: Ph_val * Math.sin(theta_val / 2.0), y: Ph_val * Math.cos(theta_val / 2.0), z: 0.0 };
     
-    const P3_val = p.He * Math.PI * p.D * p.t;
-    const P3_prime_val = p.He_prime * Math.PI * p.D * p.t_prime;
+    const P3_val = p.He * Math.PI * p.D * p.t * gamma_w;
+    const P3_prime_val = p.He_prime * Math.PI * p.D * p.t_prime * gamma_w;
     const P3_vec = { x: P3_val * Math.cos(delta_val), y: 0.0, z: P3_val * Math.sin(delta_val) };
     const P3_prime_vec = {
         x: P3_prime_val * Math.cos(delta_prime_val) * Math.cos(theta_val),
@@ -465,9 +474,9 @@ function calculateStability() {
         z: P3_prime_val * Math.sin(delta_prime_val)
     };
     
-    const Prv_val = 2 * p.H * A_pipe * Math.sin(phi_val / 2.0);
-    const Prh_val = 2 * p.H * A_pipe * Math.sin(theta_val / 2.0);
-    const Prv_vec = { x: -Prv_val * Math.sin(phi_val / 2.0), y: 0.0, z: Prv_val * Math.cos(phi_val / 2.0) };
+    const Prv_val = 2 * p.H * A_pipe * Math.sin(Math.abs(phi_val) / 2.0) * gamma_w;
+    const Prh_val = 2 * p.H * A_pipe * Math.sin(theta_val / 2.0) * gamma_w;
+    const Prv_vec = { x: -Prv_val * Math.sin(Math.abs(phi_val) / 2.0), y: 0.0, z: Prv_val * Math.cos(Math.abs(phi_val) / 2.0) };
     const Prh_vec = { x: Prh_val * Math.sin(theta_val / 2.0), y: Prh_val * Math.cos(theta_val / 2.0), z: 0.0 };
     
     const P_vec = {
@@ -488,7 +497,7 @@ function calculateStability() {
     const F_prime_vec = {
         x: F_prime * Math.cos(delta_prime_val) * Math.cos(theta_val),
         y: -F_prime * Math.cos(delta_prime_val) * Math.sin(theta_val),
-        z: F_prime * Math.sin(delta_prime_val)
+        z: -F_prime * Math.sin(delta_prime_val)
     };
     
     // Seismic
@@ -530,14 +539,14 @@ function calculateStability() {
         const Rz = P_vec.z + Tz;
         
         // Plane 1: X-Z (Flow direction)
-        [-1.0, 1.0].forEach(eqSign => {
+        [0.0, -1.0, 1.0].forEach(eqSign => {
             const totalV = -WA + Rz;
             const x_pipe = x_pipe_val;
             const momV = -WA * x_CG + Rz * x_pipe;
             
             const seismicTotal = eqSign * (F_WA + F_p);
             const totalH = seismicTotal + Rx;
-            const momH = seismicTotal * h_CG_val + Rx * h_pipe_val;
+            const momH = eqSign * F_WA * h_CG_val + eqSign * F_p * h_pipe_val + Rx * h_pipe_val;
             
             // Mitigation calculations
             const A_s = (Math.PI * Math.pow(p.d_anchor || 25, 2)) / 4.0; // mm2
@@ -557,8 +566,10 @@ function calculateStability() {
             const B_x = p.B;
             const e = Math.abs(B_x / 2.0 - x_res);
             
-            const B_4 = B_x / 4.0;
-            const eccentricityPass = e < B_4;
+            const eqLabelVal = eqSign === 0.0 ? 'Static' : (eqSign < 0 ? '-x EQ' : '+x EQ');
+            const isSeismic = eqLabelVal.includes('EQ');
+            const limit_e = isSeismic ? (B_x / 4.0) : (B_x / 6.0);
+            const eccentricityPass = e < limit_e;
             
             // JICA Safety against sliding (seismic limit is 1.2)
             const d_embed = Math.max(0.0, (state.coordinates.groundCoords[state.coordinates.groundCoords.length - 1].z - z_min));
@@ -584,8 +595,7 @@ function calculateStability() {
             const Fot = M_O > 0.001 ? Math.abs((M_R + M_R_anchors) / M_O) : 999.0;
             const overturningFSPass = Fot >= 1.2;
             
-            const eqLabelVal = eqSign < 0 ? '-x EQ' : '+x EQ';
-            const allowedBearing = eqLabelVal.includes('EQ') ? (p.qa * (p.bearing_increase_factor || 1.50)) : p.qa;
+            const allowedBearing = isSeismic ? (p.qa * (p.bearing_increase_factor || 1.50)) : p.qa;
             
             let sigma_max = Math.abs(totalV_clamped / A_base) * (1.0 + 6.0 * e / B_x);
             let isLiftOff = false;
@@ -613,7 +623,7 @@ function calculateStability() {
                 totalV: totalV_clamped,
                 totalH: totalH,
                 e: e,
-                limit_e: B_4,
+                limit_e: limit_e,
                 Fs: Fs,
                 Fot: Fot,
                 sigma: sigma_max,
@@ -633,14 +643,14 @@ function calculateStability() {
         });
         
         // Plane 2: Y-Z (Transverse direction)
-        [-1.0, 1.0].forEach(eqSign => {
+        [0.0, -1.0, 1.0].forEach(eqSign => {
             const totalV = -WA + Rz;
             const y_pipe = p.B_yz / 2.0;
             const momV = -WA * y_CG_stability + Rz * y_pipe;
             
             const seismicTotal = eqSign * (F_WA + F_p);
             const totalH = seismicTotal + Ry;
-            const momH = seismicTotal * h_CG_val + Ry * h_pipe_val;
+            const momH = eqSign * F_WA * h_CG_val + eqSign * F_p * h_pipe_val + Ry * h_pipe_val;
             
             // Mitigation calculations
             const A_s = (Math.PI * Math.pow(p.d_anchor || 25, 2)) / 4.0; // mm2
@@ -660,8 +670,10 @@ function calculateStability() {
             const B_y = p.B_yz;
             const e = Math.abs(B_y / 2.0 - y_res);
             
-            const B_4 = B_y / 4.0;
-            const eccentricityPass = e < B_4;
+            const eqLabelVal = eqSign === 0.0 ? 'Static' : (eqSign < 0 ? '-y EQ' : '+y EQ');
+            const isSeismic = eqLabelVal.includes('EQ');
+            const limit_e = isSeismic ? (B_y / 4.0) : (B_y / 6.0);
+            const eccentricityPass = e < limit_e;
             
             const d_embed = Math.max(0.0, (state.coordinates.groundCoords[state.coordinates.groundCoords.length - 1].z - z_min));
             const phi_rad = rad(p.soil_friction_angle || 30.0);
@@ -686,8 +698,7 @@ function calculateStability() {
             const Fot = M_O > 0.001 ? Math.abs((M_R + M_R_anchors) / M_O) : 999.0;
             const overturningFSPass = Fot >= 1.2;
             
-            const eqLabelVal = eqSign < 0 ? '-y EQ' : '+y EQ';
-            const allowedBearing = eqLabelVal.includes('EQ') ? (p.qa * (p.bearing_increase_factor || 1.50)) : p.qa;
+            const allowedBearing = isSeismic ? (p.qa * (p.bearing_increase_factor || 1.50)) : p.qa;
             
             let sigma_max = Math.abs(totalV_clamped / A_base) * (1.0 + 6.0 * e / B_y);
             let isLiftOff = false;
@@ -715,7 +726,7 @@ function calculateStability() {
                 totalV: totalV_clamped,
                 totalH: totalH,
                 e: e,
-                limit_e: B_4,
+                limit_e: limit_e,
                 Fs: Fs,
                 Fot: Fot,
                 sigma: sigma_max,
@@ -981,34 +992,38 @@ function renderDetailedCalculationCard() {
     const h_pipe_val = state.jicaAuditMode ? 3.000 : ((state.coordinates.pipeXZ && state.coordinates.pipeXZ[1] ? state.coordinates.pipeXZ[1].z : p.H_ab / 2.0) - z_min);
     const x_pipe_val = state.jicaAuditMode ? 3.000 : (state.coordinates.pipeXZ && state.coordinates.pipeXZ[1] ? state.coordinates.pipeXZ[1].x : p.B / 2.0);
     
-    const delta_val = state.coordinates.pipeXZ && state.coordinates.pipeXZ[1] ?
-        Math.atan2(Math.abs(state.coordinates.pipeXZ[1].z - state.coordinates.pipeXZ[0].z), Math.abs(state.coordinates.pipeXZ[1].x - state.coordinates.pipeXZ[0].x)) : 0.0;
-    const delta_prime_val = state.coordinates.pipeXZ && state.coordinates.pipeXZ[2] ?
-        Math.atan2(Math.abs(state.coordinates.pipeXZ[2].z - state.coordinates.pipeXZ[1].z), Math.abs(state.coordinates.pipeXZ[2].x - state.coordinates.pipeXZ[1].x)) : 0.0;
+    const dz_up = state.coordinates.pipeXZ && state.coordinates.pipeXZ[1] ? (state.coordinates.pipeXZ[0].z - state.coordinates.pipeXZ[1].z) : 0.0;
+    const dz_down = state.coordinates.pipeXZ && state.coordinates.pipeXZ[2] ? (state.coordinates.pipeXZ[1].z - state.coordinates.pipeXZ[2].z) : 0.0;
+    const dx_up = state.coordinates.pipeXZ && state.coordinates.pipeXZ[1] ? Math.abs(state.coordinates.pipeXZ[1].x - state.coordinates.pipeXZ[0].x) : 0.0;
+    const dx_down = state.coordinates.pipeXZ && state.coordinates.pipeXZ[2] ? Math.abs(state.coordinates.pipeXZ[2].x - state.coordinates.pipeXZ[1].x) : 0.0;
+    
+    const delta_val = (dx_up || dz_up) ? Math.atan2(dz_up, dx_up || 0.001) : 0.0;
+    const delta_prime_val = (dx_down || dz_down) ? Math.atan2(dz_down, dx_down || 0.001) : 0.0;
         
     let dot_prod = (state.coordinates.pipeXY[1].x - state.coordinates.pipeXY[0].x) * (state.coordinates.pipeXY[2].x - state.coordinates.pipeXY[1].x) +
                    (state.coordinates.pipeXY[1].y - state.coordinates.pipeXY[0].y) * (state.coordinates.pipeXY[2].y - state.coordinates.pipeXY[1].y);
     let mag1 = Math.sqrt((state.coordinates.pipeXY[1].x - state.coordinates.pipeXY[0].x)**2 + (state.coordinates.pipeXY[1].y - state.coordinates.pipeXY[0].y)**2);
     let mag2 = Math.sqrt((state.coordinates.pipeXY[2].x - state.coordinates.pipeXY[1].x)**2 + (state.coordinates.pipeXY[2].y - state.coordinates.pipeXY[1].y)**2);
     let theta_val = (mag1 * mag2 > 0) ? Math.acos(Math.max(-1.0, Math.min(1.0, dot_prod / (mag1 * mag2)))) : 0.0;
-    let phi_val = Math.abs(delta_val - delta_prime_val);
+    let phi_val = delta_val - delta_prime_val;
     
     const W_val = 0.5 * (f.w + f.s) * p.l * Math.cos(delta_val);
     const W_prime_val = 0.5 * (f.w + f.s_prime) * p.l_prime * Math.cos(delta_prime_val);
     const P1_val = f.s * p.L * Math.sin(delta_val);
     const P1_prime_val = f.s_prime * p.L_prime * Math.sin(delta_prime_val);
     const g = 9.80665;
-    const P2_val = (2 * p.f * (p.Q ** 2) / (g * Math.PI * (p.D ** 3))) * p.L;
-    const P2_prime_val = (2 * p.f * (p.Q ** 2) / (g * Math.PI * (p.D ** 3))) * p.L_prime;
+    const gamma_w = 1.0;
+    const P2_val = (2 * p.f * (p.Q ** 2) / (g * Math.PI * (p.D ** 3))) * p.L * gamma_w;
+    const P2_prime_val = (2 * p.f * (p.Q ** 2) / (g * Math.PI * (p.D ** 3))) * p.L_prime * gamma_w;
     const A_pipe = Math.PI * p.D * p.D / 4.0;
     const v_water = A_pipe > 0 ? p.Q / A_pipe : 0.0;
-    const Pv_val = 2 * (v_water ** 2) / g * A_pipe * Math.sin(phi_val / 2.0);
-    const Ph_val = 2 * (v_water ** 2) / g * A_pipe * Math.sin(theta_val / 2.0);
-    const P3_val = p.He * Math.PI * p.D * p.t;
-    const P3_prime_val = p.He_prime * Math.PI * p.D * p.t_prime;
-    const Prv_val = 2 * p.H * A_pipe * Math.sin(phi_val / 2.0);
-    const Prh_val = 2 * p.H * A_pipe * Math.sin(theta_val / 2.0);
-    const Prv_vec = { x: -Prv_val * Math.sin(phi_val / 2.0), y: 0.0, z: Prv_val * Math.cos(phi_val / 2.0) };
+    const Pv_val = 2 * (v_water ** 2) / g * A_pipe * Math.sin(Math.abs(phi_val) / 2.0) * gamma_w;
+    const Ph_val = 2 * (v_water ** 2) / g * A_pipe * Math.sin(theta_val / 2.0) * gamma_w;
+    const P3_val = p.He * Math.PI * p.D * p.t * gamma_w;
+    const P3_prime_val = p.He_prime * Math.PI * p.D * p.t_prime * gamma_w;
+    const Prv_val = 2 * p.H * A_pipe * Math.sin(Math.abs(phi_val) / 2.0) * gamma_w;
+    const Prh_val = 2 * p.H * A_pipe * Math.sin(theta_val / 2.0) * gamma_w;
+    const Prv_vec = { x: -Prv_val * Math.sin(Math.abs(phi_val) / 2.0), y: 0.0, z: Prv_val * Math.cos(Math.abs(phi_val) / 2.0) };
     const Prh_vec = { x: Prh_val * Math.sin(theta_val / 2.0), y: Prh_val * Math.cos(theta_val / 2.0), z: 0.0 };
     
     if (state.selectedForceComponent) {
@@ -2035,13 +2050,15 @@ function syncParamsFromCoords() {
     const c = state.coordinates;
     const p = state.params;
     
-    let maxH = 0;
-    c.xzCoords.forEach(pt => { if (pt.z > maxH) maxH = pt.z; });
-    p.H_ab = maxH;
+    if (c.xzCoords && c.xzCoords.length > 0) {
+        const zs = c.xzCoords.map(pt => pt.z);
+        p.H_ab = Math.max(...zs) - Math.min(...zs);
+    }
     
-    let maxW_yz = 0;
-    c.yzCoords.forEach(pt => { if (pt.y > maxW_yz) maxW_yz = pt.y; });
-    p.B_yz = maxW_yz;
+    if (c.yzCoords && c.yzCoords.length > 0) {
+        const ys = c.yzCoords.map(pt => pt.y);
+        p.B_yz = Math.max(...ys) - Math.min(...ys);
+    }
 }
 
 /**
@@ -3014,20 +3031,24 @@ function generatePrintReportHtml() {
     const f = state.results.forces;
     const cases = state.results.cases;
     
-    const delta_val = state.coordinates.pipeXZ && state.coordinates.pipeXZ[1] ?
-        Math.atan2(Math.abs(state.coordinates.pipeXZ[1].z - state.coordinates.pipeXZ[0].z), Math.abs(state.coordinates.pipeXZ[1].x - state.coordinates.pipeXZ[0].x)) : 0.0;
-    const delta_prime_val = state.coordinates.pipeXZ && state.coordinates.pipeXZ[2] ?
-        Math.atan2(Math.abs(state.coordinates.pipeXZ[2].z - state.coordinates.pipeXZ[1].z), Math.abs(state.coordinates.pipeXZ[2].x - state.coordinates.pipeXZ[1].x)) : 0.0;
+    const dz_up = state.coordinates.pipeXZ && state.coordinates.pipeXZ[1] ? (state.coordinates.pipeXZ[0].z - state.coordinates.pipeXZ[1].z) : 0.0;
+    const dz_down = state.coordinates.pipeXZ && state.coordinates.pipeXZ[2] ? (state.coordinates.pipeXZ[1].z - state.coordinates.pipeXZ[2].z) : 0.0;
+    const dx_up = state.coordinates.pipeXZ && state.coordinates.pipeXZ[1] ? Math.abs(state.coordinates.pipeXZ[1].x - state.coordinates.pipeXZ[0].x) : 0.0;
+    const dx_down = state.coordinates.pipeXZ && state.coordinates.pipeXZ[2] ? Math.abs(state.coordinates.pipeXZ[2].x - state.coordinates.pipeXZ[1].x) : 0.0;
+    
+    const delta_val = (dx_up || dz_up) ? Math.atan2(dz_up, dx_up || 0.001) : 0.0;
+    const delta_prime_val = (dx_down || dz_down) ? Math.atan2(dz_down, dx_down || 0.001) : 0.0;
         
     let dot_prod = (state.coordinates.pipeXY[1].x - state.coordinates.pipeXY[0].x) * (state.coordinates.pipeXY[2].x - state.coordinates.pipeXY[1].x) +
                    (state.coordinates.pipeXY[1].y - state.coordinates.pipeXY[0].y) * (state.coordinates.pipeXY[2].y - state.coordinates.pipeXY[1].y);
     let mag1 = Math.sqrt((state.coordinates.pipeXY[1].x - state.coordinates.pipeXY[0].x)**2 + (state.coordinates.pipeXY[1].y - state.coordinates.pipeXY[0].y)**2);
     let mag2 = Math.sqrt((state.coordinates.pipeXY[2].x - state.coordinates.pipeXY[1].x)**2 + (state.coordinates.pipeXY[2].y - state.coordinates.pipeXY[1].y)**2);
     let theta_val = (mag1 * mag2 > 0) ? Math.acos(Math.max(-1.0, Math.min(1.0, dot_prod / (mag1 * mag2)))) : 0.0;
-    let phi_val = Math.abs(delta_val - delta_prime_val);
+    let phi_val = delta_val - delta_prime_val;
     
     // Core parameters
     const g = 9.80665; // acceleration of gravity
+    const gamma_w = 1.0; // t/m³ fresh water density
     const A_pipe = Math.PI * (p.D ** 2) / 4.0;
     const v_water = A_pipe > 0 ? p.Q / A_pipe : 0.0;
     const w = A_pipe * 1.0;
@@ -3045,14 +3066,14 @@ function generatePrintReportHtml() {
     const W_prime_val = 0.5 * (w + s_prime) * p.l_prime * Math.cos(delta_prime_val);
     const P1_val = s * p.L * Math.sin(delta_val);
     const P1_prime_val = s_prime * p.L_prime * Math.sin(delta_prime_val);
-    const P2_val = (g * Math.PI * (p.D ** 3)) > 0 ? (2 * p.f * (p.Q ** 2) / (g * Math.PI * (p.D ** 3))) * p.L : 0;
-    const P2_prime_val = (g * Math.PI * (p.D ** 3)) > 0 ? (2 * p.f * (p.Q ** 2) / (g * Math.PI * (p.D ** 3))) * p.L_prime : 0;
-    const Pv_val = 2 * (v_water ** 2) / g * A_pipe * Math.sin(phi_val / 2.0);
-    const Ph_val = 2 * (v_water ** 2) / g * A_pipe * Math.sin(theta_val / 2.0);
-    const P3_val = p.He * Math.PI * p.D * p.t;
-    const P3_prime_val = p.He_prime * Math.PI * p.D * p.t_prime;
-    const Prv_val = 2 * p.H * A_pipe * Math.sin(phi_val / 2.0);
-    const Prh_val = 2 * p.H * A_pipe * Math.sin(theta_val / 2.0);
+    const P2_val = (g * Math.PI * (p.D ** 3)) > 0 ? (2 * p.f * (p.Q ** 2) / (g * Math.PI * (p.D ** 3))) * p.L * gamma_w : 0;
+    const P2_prime_val = (g * Math.PI * (p.D ** 3)) > 0 ? (2 * p.f * (p.Q ** 2) / (g * Math.PI * (p.D ** 3))) * p.L_prime * gamma_w : 0;
+    const Pv_val = 2 * (v_water ** 2) / g * A_pipe * Math.sin(Math.abs(phi_val) / 2.0) * gamma_w;
+    const Ph_val = 2 * (v_water ** 2) / g * A_pipe * Math.sin(theta_val / 2.0) * gamma_w;
+    const P3_val = p.He * Math.PI * p.D * p.t * gamma_w;
+    const P3_prime_val = p.He_prime * Math.PI * p.D * p.t_prime * gamma_w;
+    const Prv_val = 2 * p.H * A_pipe * Math.sin(Math.abs(phi_val) / 2.0) * gamma_w;
+    const Prh_val = 2 * p.H * A_pipe * Math.sin(theta_val / 2.0) * gamma_w;
     
     // Friction of expansion joint
     const F1 = p.L > 0 ? p.c * (w + s) * (p.L - p.l / 2.0) * Math.cos(delta_val) : 0;
@@ -3469,7 +3490,7 @@ function generatePrintReportHtml() {
 
             <!-- Detailed Case Calculations -->
             <div class="report-section" style="margin-bottom: 20px;">
-                <h3 style="font-size: 12px; font-weight: 700; color: #0f172a; text-transform: uppercase; border-bottom: 1px solid #94a3b8; padding-bottom: 4px; margin-bottom: 8px;">9. Step-by-Step Load Cases Verification (All 16 Combinations)</h3>
+                <h3 style="font-size: 12px; font-weight: 700; color: #0f172a; text-transform: uppercase; border-bottom: 1px solid #94a3b8; padding-bottom: 4px; margin-bottom: 8px;">9. Step-by-Step Load Cases Verification (All ${cases.length} Combinations)</h3>
                 <div style="display: flex; flex-direction: column; gap: 10px;">
                     ${detailedCasesVerification}
                 </div>
