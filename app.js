@@ -3141,18 +3141,51 @@ function generatePrintReportHtml() {
         { name: 'Unbalanced horizontal bend pressure', symbol: 'Prh', fx: f.Prh.x, fy: f.Prh.y, fz: f.Prh.z }
     ];
     
-    forceKeys.forEach(fk => {
-        forcesRows += `
-            <tr style="color: #000000 !important;">
-                <td style="padding: 4px; border: 1px solid #cbd5e1; color: #000000;">${fk.name}</td>
-                <td style="padding: 4px; border: 1px solid #cbd5e1; font-family: monospace; color: #000000;">${fk.symbol}</td>
-                <td style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; color: #000000;">${fNum(fk.fx, 3)}</td>
-                <td style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; color: #000000;">${fNum(fk.fy, 3)}</td>
-                <td style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; color: #000000;">${fNum(fk.fz, 3)}</td>
-            </tr>
-        `;
-    });
-    
+    const c1_x = f.P_vec.x + f.F.x + f.F_prime.x;
+    const c1_y = f.P_vec.y + f.F.y + f.F_prime.y;
+    const c1_z = f.P_vec.z + f.F.z + f.F_prime.z;
+
+    const c2_x = f.P_vec.x + f.F.x - f.F_prime.x;
+    const c2_y = f.P_vec.y + f.F.y - f.F_prime.y;
+    const c2_z = f.P_vec.z + f.F.z - f.F_prime.z;
+
+    const c3_x = f.P_vec.x - f.F.x + f.F_prime.x;
+    const c3_y = f.P_vec.y - f.F.y + f.F_prime.y;
+    const c3_z = f.P_vec.z - f.F.z + f.F_prime.z;
+
+    const c4_x = f.P_vec.x - f.F.x - f.F_prime.x;
+    const c4_y = f.P_vec.y - f.F.y - f.F_prime.y;
+    const c4_z = f.P_vec.z - f.F.z - f.F_prime.z;
+
+    // Table 2.1.1 rows
+    const table211_rows = `
+        <tr><td>Pipe & Water weight W</td><td style="font-family:monospace;">W</td><td style="text-align:right;">${fNum(f.W.x, 3)}</td><td style="text-align:right;">${fNum(f.W.y, 3)}</td><td style="text-align:right;">${fNum(f.W.z, 3)}</td></tr>
+        <tr><td>Pipe & Water weight W'</td><td style="font-family:monospace;">W'</td><td style="text-align:right;">${fNum(f.W_prime.x, 3)}</td><td style="text-align:right;">${fNum(f.W_prime.y, 3)}</td><td style="text-align:right;">${fNum(f.W_prime.z, 3)}</td></tr>
+        <tr><td>Pipe shell weight P1</td><td style="font-family:monospace;">P1</td><td style="text-align:right;">${fNum(f.P1.x, 3)}</td><td style="text-align:right;">${fNum(f.P1.y, 3)}</td><td style="text-align:right;">${fNum(f.P1.z, 3)}</td></tr>
+        <tr><td>Pipe shell weight P1'</td><td style="font-family:monospace;">P1'</td><td style="text-align:right;">${fNum(f.P1_prime.x, 3)}</td><td style="text-align:right;">${fNum(f.P1_prime.y, 3)}</td><td style="text-align:right;">${fNum(f.P1_prime.z, 3)}</td></tr>
+        <tr><td>Hydrodynamic friction P2</td><td style="font-family:monospace;">P2</td><td style="text-align:right;">${fNum(f.P2.x, 3)}</td><td style="text-align:right;">${fNum(f.P2.y, 3)}</td><td style="text-align:right;">${fNum(f.P2.z, 3)}</td></tr>
+        <tr><td>Hydrodynamic friction P2'</td><td style="font-family:monospace;">P2'</td><td style="text-align:right;">${fNum(f.P2_prime.x, 3)}</td><td style="text-align:right;">${fNum(f.P2_prime.y, 3)}</td><td style="text-align:right;">${fNum(f.P2_prime.z, 3)}</td></tr>
+        <tr><td>Centrifugal Vert. Bend Pv</td><td style="font-family:monospace;">Pv</td><td style="text-align:right;">${fNum(f.Pv.x, 3)}</td><td style="text-align:right;">${fNum(f.Pv.y, 3)}</td><td style="text-align:right;">${fNum(f.Pv.z, 3)}</td></tr>
+        <tr><td>Centrifugal Horiz. Bend Ph</td><td style="font-family:monospace;">Ph</td><td style="text-align:right;">${fNum(f.Ph.x, 3)}</td><td style="text-align:right;">${fNum(f.Ph.y, 3)}</td><td style="text-align:right;">${fNum(f.Ph.z, 3)}</td></tr>
+        <tr><td>Expansion joint pressure P3</td><td style="font-family:monospace;">P3</td><td style="text-align:right;">${fNum(f.P3.x, 3)}</td><td style="text-align:right;">${fNum(f.P3.y, 3)}</td><td style="text-align:right;">${fNum(f.P3.z, 3)}</td></tr>
+        <tr><td>Expansion joint pressure P3'</td><td style="font-family:monospace;">P3'</td><td style="text-align:right;">${fNum(f.P3_prime.x, 3)}</td><td style="text-align:right;">${fNum(f.P3_prime.y, 3)}</td><td style="text-align:right;">${fNum(f.P3_prime.z, 3)}</td></tr>
+        <tr><td>Unbalanced vertical pressure Prv</td><td style="font-family:monospace;">Prv</td><td style="text-align:right;">${fNum(f.Prv.x, 3)}</td><td style="text-align:right;">${fNum(f.Prv.y, 3)}</td><td style="text-align:right;">${fNum(f.Prv.z, 3)}</td></tr>
+        <tr><td>Unbalanced horizontal pressure Prh</td><td style="font-family:monospace;">Prh</td><td style="text-align:right;">${fNum(f.Prh.x, 3)}</td><td style="text-align:right;">${fNum(f.Prh.y, 3)}</td><td style="text-align:right;">${fNum(f.Prh.z, 3)}</td></tr>
+        <tr style="font-weight:bold; background-color:#f1f5f9; border-top:1.5px solid #0f172a;">
+            <td>Total Constant Force Resultant</td><td style="font-family:monospace;">P</td><td style="text-align:right;">${fNum(f.P_vec.x, 3)}</td><td style="text-align:right;">${fNum(f.P_vec.y, 3)}</td><td style="text-align:right;">${fNum(f.P_vec.z, 3)}</td>
+        </tr>
+        <tr><td>Support point friction F1</td><td style="font-family:monospace;">F1</td><td style="text-align:right;">${fNum(F1, 3)}</td><td style="text-align:right;">0.000</td><td style="text-align:right;">${fNum(-F1 * Math.sin(delta_val), 3)}</td></tr>
+        <tr><td>Support point friction F1'</td><td style="font-family:monospace;">F1'</td><td style="text-align:right;">${fNum(F1_prime * Math.cos(delta_prime_val) * Math.cos(theta_val), 3)}</td><td style="text-align:right;">${fNum(-F1_prime * Math.cos(delta_prime_val) * Math.sin(theta_val), 3)}</td><td style="text-align:right;">${fNum(-F1_prime * Math.sin(delta_prime_val), 3)}</td></tr>
+        <tr><td>Expansion joint friction F2</td><td style="font-family:monospace;">F2</td><td style="text-align:right;">${fNum(F2 * Math.cos(delta_val), 3)}</td><td style="text-align:right;">0.000</td><td style="text-align:right;">${fNum(-F2 * Math.sin(delta_val), 3)}</td></tr>
+        <tr><td>Expansion joint friction F2'</td><td style="font-family:monospace;">F2'</td><td style="text-align:right;">${fNum(F2_prime * Math.cos(delta_prime_val) * Math.cos(theta_val), 3)}</td><td style="text-align:right;">${fNum(-F2_prime * Math.cos(delta_prime_val) * Math.sin(theta_val), 3)}</td><td style="text-align:right;">${fNum(-F2_prime * Math.sin(delta_prime_val), 3)}</td></tr>
+        <tr style="font-weight:bold; background-color:#f8fafc;"><td>Upstream Friction Sum F</td><td style="font-family:monospace;">F=F1+F2</td><td style="text-align:right;">${fNum(f.F.x, 3)}</td><td style="text-align:right;">${fNum(f.F.y, 3)}</td><td style="text-align:right;">${fNum(f.F.z, 3)}</td></tr>
+        <tr style="font-weight:bold; background-color:#f8fafc;"><td>Downstream Friction Sum F'</td><td style="font-family:monospace;">F'=F1'+F2'</td><td style="text-align:right;">${fNum(f.F_prime.x, 3)}</td><td style="text-align:right;">${fNum(f.F_prime.y, 3)}</td><td style="text-align:right;">${fNum(f.F_prime.z, 3)}</td></tr>
+        <tr style="font-weight:bold; background-color:#e2e8f0; border-top:1.5px solid #0f172a;"><td>Case 1 Total (P + F + F')</td><td style="font-family:monospace;">Case-1</td><td style="text-align:right;">${fNum(c1_x, 3)}</td><td style="text-align:right;">${fNum(c1_y, 3)}</td><td style="text-align:right;">${fNum(c1_z, 3)}</td></tr>
+        <tr style="font-weight:bold; background-color:#e2e8f0;"><td>Case 2 Total (P + F - F')</td><td style="font-family:monospace;">Case-2</td><td style="text-align:right;">${fNum(c2_x, 3)}</td><td style="text-align:right;">${fNum(c2_y, 3)}</td><td style="text-align:right;">${fNum(c2_z, 3)}</td></tr>
+        <tr style="font-weight:bold; background-color:#e2e8f0;"><td>Case 3 Total (P - F + F')</td><td style="font-family:monospace;">Case-3</td><td style="text-align:right;">${fNum(c3_x, 3)}</td><td style="text-align:right;">${fNum(c3_y, 3)}</td><td style="text-align:right;">${fNum(c3_z, 3)}</td></tr>
+        <tr style="font-weight:bold; background-color:#e2e8f0;"><td>Case 4 Total (P - F - F')</td><td style="font-family:monospace;">Case-4</td><td style="text-align:right;">${fNum(c4_x, 3)}</td><td style="text-align:right;">${fNum(c4_y, 3)}</td><td style="text-align:right;">${fNum(c4_z, 3)}</td></tr>
+    `;
+
     let xzCasesRows = '';
     let yzCasesRows = '';
     
@@ -3181,120 +3214,230 @@ function generatePrintReportHtml() {
     let detailedCasesVerification = '';
     cases.forEach(cs => {
         const isXZ = cs.plane === 'X-Z';
-        const eqSign = cs.eqLabel.includes('-') ? -1.0 : 1.0;
-        const signText = eqSign < 0 ? '-' : '+';
-        const seismicTotal = eqSign * (f.F_WA + f.F_p);
-        const pipeH_val = isXZ ? cs.Rx : cs.Ry;
-        const pipeH_label = isXZ ? 'Rx' : 'Ry';
-        const toeLabel = isXZ ? (cs.eqLabel.includes('-x') ? 'upstream toe (x=0)' : 'downstream toe (x=B)') : 'toe';
+        const eqSign = cs.eqLabel.includes('-') ? -1.0 : (cs.eqLabel.includes('+') ? 1.0 : 0.0);
+        const armV = isXZ ? f.x_CG : f.y_CG_stability;
+        const armPipeV = isXZ ? x_pipe_val : (p.B_yz / 2.0);
+        const fWA_val = eqSign * f.F_WA;
+        const fP_val = eqSign * f.F_p;
+        const fPipeH_val = isXZ ? cs.Rx : cs.Ry;
+        const pipeH_symbol = isXZ ? 'Px' : 'Py';
+        const distLabel = isXZ ? 'x (m)' : 'y (m)';
+        const widthVal = isXZ ? p.B : p.B_yz;
+        
+        let verticalRows = `
+            <tr>
+                <td style="padding: 3px 6px; border: 1px solid #cbd5e1; font-family: monospace;">WA</td>
+                <td style="padding: 3px 6px; border: 1px solid #cbd5e1; text-align: right;">${(-f.WA).toFixed(3)}</td>
+                <td style="padding: 3px 6px; border: 1px solid #cbd5e1; text-align: right;">${armV.toFixed(3)}</td>
+                <td style="padding: 3px 6px; border: 1px solid #cbd5e1; text-align: right;">${(-f.WA * armV).toFixed(3)}</td>
+            </tr>
+            <tr>
+                <td style="padding: 3px 6px; border: 1px solid #cbd5e1; font-family: monospace;">Pz</td>
+                <td style="padding: 3px 6px; border: 1px solid #cbd5e1; text-align: right;">${cs.Rz.toFixed(3)}</td>
+                <td style="padding: 3px 6px; border: 1px solid #cbd5e1; text-align: right;">${armPipeV.toFixed(3)}</td>
+                <td style="padding: 3px 6px; border: 1px solid #cbd5e1; text-align: right;">${(cs.Rz * armPipeV).toFixed(3)}</td>
+            </tr>
+        `;
+        
+        let horizontalRows = `
+            <tr>
+                <td style="padding: 3px 6px; border: 1px solid #cbd5e1; font-family: monospace;">FWA</td>
+                <td style="padding: 3px 6px; border: 1px solid #cbd5e1; text-align: right;">${fWA_val.toFixed(3)}</td>
+                <td style="padding: 3px 6px; border: 1px solid #cbd5e1; text-align: right;">${h_CG_val.toFixed(3)}</td>
+                <td style="padding: 3px 6px; border: 1px solid #cbd5e1; text-align: right;">${(fWA_val * h_CG_val).toFixed(3)}</td>
+            </tr>
+            <tr>
+                <td style="padding: 3px 6px; border: 1px solid #cbd5e1; font-family: monospace;">Fp</td>
+                <td style="padding: 3px 6px; border: 1px solid #cbd5e1; text-align: right;">${fP_val.toFixed(3)}</td>
+                <td style="padding: 3px 6px; border: 1px solid #cbd5e1; text-align: right;">${h_pipe_val.toFixed(3)}</td>
+                <td style="padding: 3px 6px; border: 1px solid #cbd5e1; text-align: right;">${(fP_val * h_pipe_val).toFixed(3)}</td>
+            </tr>
+            <tr>
+                <td style="padding: 3px 6px; border: 1px solid #cbd5e1; font-family: monospace;">${pipeH_symbol}</td>
+                <td style="padding: 3px 6px; border: 1px solid #cbd5e1; text-align: right;">${fPipeH_val.toFixed(3)}</td>
+                <td style="padding: 3px 6px; border: 1px solid #cbd5e1; text-align: right;">${h_pipe_val.toFixed(3)}</td>
+                <td style="padding: 3px 6px; border: 1px solid #cbd5e1; text-align: right;">${(fPipeH_val * h_pipe_val).toFixed(3)}</td>
+            </tr>
+        `;
+
         detailedCasesVerification += `
-            <div style="margin-bottom: 15px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 4px; page-break-inside: avoid; background-color: #f8fafc;">
-                <h4 style="margin: 0 0 6px 0; font-size: 10px; color: #0f172a; text-transform: uppercase; border-bottom: 1px dashed #cbd5e1; padding-bottom: 2px;">
-                    Case: ${cs.caseName} (${cs.plane} Plane, EQ: ${cs.eqLabel}, Comb: ${cs.combination})
-                </h4>
-                <div style="font-size: 9px; line-height: 1.5; color: #334155; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div style="margin-bottom: 20px; padding: 12px; border: 1.5px solid #0f172a; border-radius: 4px; page-break-inside: avoid; background-color: #ffffff;">
+                <div style="font-weight: bold; font-size: 11px; color: #0f172a; border-bottom: 1.5px solid #0f172a; padding-bottom: 4px; margin-bottom: 10px; display: flex; justify-content: space-between;">
+                    <span>Stability Analysis &bull; ${cs.plane} plain &bull; B = ${widthVal.toFixed(3)} m</span>
+                    <span>${cs.caseName} (${cs.combination}) &bull; EQ: ${cs.eqLabel}</span>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
                     <div>
-                        <strong>Vertical Forces & Moments Sum:</strong><br>
-                        * &Sigma; V = -WA + Rz = -${f.WA.toFixed(2)} + (${cs.Rz.toFixed(2)}) = <strong>${cs.totalV.toFixed(2)} ton</strong> (downward)<br>
-                        * Lever arms: CG_arm = ${(isXZ ? f.x_CG : f.y_CG_stability).toFixed(3)}m, pipe_arm = ${(isXZ ? x_pipe_val : p.B_yz/2.0).toFixed(3)}m<br>
-                        * &Sigma; M_V = -WA &times; CG_arm + Rz &times; pipe_arm = <strong>${cs.momV.toFixed(2)} ton-m</strong>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 9.5px; font-family: 'Consolas', 'Courier New', monospace;">
+                            <thead>
+                                <tr style="background-color: #f1f5f9; border-bottom: 1px solid #0f172a;">
+                                    <th style="padding: 3px 6px; border: 1px solid #cbd5e1; text-align: left;">Vertical Force (ton)</th>
+                                    <th style="padding: 3px 6px; border: 1px solid #cbd5e1; text-align: right;">${distLabel}</th>
+                                    <th style="padding: 3px 6px; border: 1px solid #cbd5e1; text-align: right;">Moment (ton&middot;m)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${verticalRows}
+                                <tr style="font-weight: bold; background-color: #f8fafc; border-top: 1.5px solid #0f172a;">
+                                    <td style="padding: 3px 6px; border: 1px solid #cbd5e1;">&Sigma;V = ${cs.totalV.toFixed(3)}</td>
+                                    <td style="padding: 3px 6px; border: 1px solid #cbd5e1;"></td>
+                                    <td style="padding: 3px 6px; border: 1px solid #cbd5e1; text-align: right;">&Sigma;V&middot;${isXZ ? 'x' : 'y'} = ${cs.momV.toFixed(3)}</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
+                    
                     <div>
-                        <strong>Horizontal Forces & Moments Sum (with Seismic):</strong><br>
-                        * Horizontal load from pipe: ${pipeH_label} = <strong>${pipeH_val.toFixed(2)} ton</strong><br>
-                        * Seismic force: F_seismic = <strong>${seismicTotal.toFixed(2)} ton</strong><br>
-                        * &Sigma; H = F_seismic + ${pipeH_label} = <strong>${cs.totalH.toFixed(2)} ton</strong><br>
-                        * &Sigma; M_H = ${signText} (F_WA &times; ${h_CG_val.toFixed(2)}) ${signText} (F_p &times; ${h_pipe_val.toFixed(2)}) + (${pipeH_label} &times; ${h_pipe_val.toFixed(2)}) = <strong>${cs.momH.toFixed(2)} ton-m</strong>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 9.5px; font-family: 'Consolas', 'Courier New', monospace;">
+                            <thead>
+                                <tr style="background-color: #f1f5f9; border-bottom: 1px solid #0f172a;">
+                                    <th style="padding: 3px 6px; border: 1px solid #cbd5e1; text-align: left;">Horizontal Force (ton)</th>
+                                    <th style="padding: 3px 6px; border: 1px solid #cbd5e1; text-align: right;">z (m)</th>
+                                    <th style="padding: 3px 6px; border: 1px solid #cbd5e1; text-align: right;">Moment (ton&middot;m)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${horizontalRows}
+                                <tr style="font-weight: bold; background-color: #f8fafc; border-top: 1.5px solid #0f172a;">
+                                    <td style="padding: 3px 6px; border: 1px solid #cbd5e1;">&Sigma;H = ${cs.totalH.toFixed(3)}</td>
+                                    <td style="padding: 3px 6px; border: 1px solid #cbd5e1;"></td>
+                                    <td style="padding: 3px 6px; border: 1px solid #cbd5e1; text-align: right;">&Sigma;H&middot;z = ${cs.momH.toFixed(3)}</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-                <div style="font-size: 9px; line-height: 1.5; color: #334155; margin-top: 6px; border-top: 1px dashed #cbd5e1; padding-top: 4px; display: flex; gap: 12px; flex-wrap: wrap;">
-                    <span><strong>Sliding check:</strong> Fs = (${cs.P_p > 0 || cs.R_cohesion > 0 ? `(|&Sigma; V| &times; &lambda; + R_key + V_anchors + P_p + R_cohesion)` : `(|&Sigma; V| &times; &lambda; + R_key + V_anchors`}) / |&Sigma; H| = <strong>${cs.Fs.toFixed(2)}</strong> (Limit: &ge; 1.2)${cs.P_p > 0 ? ` [P_p = ${cs.P_p.toFixed(2)} t, R_coh = ${cs.R_cohesion.toFixed(2)} t]` : ''} - <strong style="color:${cs.slidingPass ? '#10b981':'#ef4444'};">${cs.slidingPass ? 'PASS':'FAIL'}</strong></span>
-                    <span><strong>Overturning check:</strong> Fot = |M_Resisting / M_Overturning| = <strong>${cs.Fot.toFixed(2)}</strong> (Limit: &ge; 1.2) - <strong style="color:${cs.overturningFSPass ? '#10b981':'#ef4444'};">${cs.overturningFSPass ? 'PASS':'FAIL'}</strong></span>
-                    <span><strong>Eccentricity:</strong> e = |B/2 - x_res| = <strong>${cs.e.toFixed(3)} m</strong> (Limit: &le; ${cs.limit_e.toFixed(3)} m) - <strong style="color:${cs.eccentricityPass ? '#10b981':'#ef4444'};">${cs.eccentricityPass ? 'PASS':'FAIL'}</strong></span>
-                    <span><strong>Bearing pressure:</strong> &sigma;_max = <strong>${fNum(cs.sigma, 2)} t/m&sup2;</strong> (Limit: &lt; ${cs.limit_qa.toFixed(2)} t/m&sup2;${cs.eqLabel.includes('EQ') ? ` [qa_allow = qa &times; ${p.bearing_increase_factor || 1.50} = ${cs.limit_qa.toFixed(2)}]` : ''}) ${cs.isLiftOff ? '<em>(Heel Lift-off redistributed)</em>' : ''} - <strong style="color:${cs.bearingPass ? '#10b981':'#ef4444'};">${cs.bearingPass ? 'PASS':'FAIL'}</strong></span>
+                
+                <div style="font-size: 10px; font-family: 'Consolas', 'Courier New', monospace; border-top: 1px dashed #94a3b8; padding-top: 8px; color: #0f172a;">
+                    <div style="margin-bottom: 4px;"><strong>&Sigma;M = &Sigma;V&middot;${isXZ ? 'x' : 'y'} - &Sigma;H&middot;z = ${cs.sumM.toFixed(3)} ton&middot;m</strong></div>
+                    <div style="display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+                        <span><strong>Safety for overturning:</strong> e = ${cs.e.toFixed(3)} ${cs.eccentricityPass ? '<' : '>'} ${cs.limit_e.toFixed(3)} m &bull; <strong style="color:${cs.eccentricityPass ? '#15803d':'#b91c1c'};">${cs.eccentricityPass ? 'PASS':'FAIL'}</strong></span>
+                        <span><strong>Safety for sliding:</strong> Fs = ${cs.Fs.toFixed(2)} ${cs.slidingPass ? '>' : '<'} ${cs.eqLabel === 'Static' ? '2.0' : '1.2'} &bull; <strong style="color:${cs.slidingPass ? '#15803d':'#b91c1c'};">${cs.slidingPass ? 'PASS':'FAIL'}</strong></span>
+                        <span><strong>Safety for bearing:</strong> &sigma;max = ${fNum(cs.sigma, 2)} ${cs.bearingPass ? '<' : '>'} ${cs.limit_qa.toFixed(1)} t/m&sup2; &bull; <strong style="color:${cs.bearingPass ? '#15803d':'#b91c1c'};">${cs.bearingPass ? 'PASS':'FAIL'}</strong></span>
+                    </div>
                 </div>
             </div>
         `;
     });
 
-    const activeCase = cases[state.selectedCaseIndex] || cases[0];
-    
     return `
-        <div class="print-preview-area" style="padding: 20px; font-family: 'Inter', sans-serif; color: #1e293b; background: #ffffff;">
-            <!-- Report Header -->
-            <div class="report-header" style="border-bottom: 2px solid #0f172a; padding-bottom: 15px; margin-bottom: 20px;">
-                <h1 style="font-size: 20px; font-weight: 800; color: #0f172a; margin: 0 0 5px 0; text-transform: uppercase;">JICA Penstock Anchor Block Design Report</h1>
-                <div style="font-size: 11px; color: #475569; display: flex; justify-content: space-between;">
+        <div class="print-preview-area" style="padding: 25px; font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif; color: #0f172a; background: #ffffff;">
+            <!-- Report Banner -->
+            <div class="report-header" style="border-bottom: 3px solid #0f172a; padding-bottom: 12px; margin-bottom: 25px;">
+                <div style="font-size: 14px; font-weight: 800; color: #475569; letter-spacing: 1px; text-transform: uppercase;">2. PENSTOCK - 2.1 Stability Analysis</div>
+                <h1 style="font-size: 22px; font-weight: 900; color: #0f172a; margin: 5px 0 8px 0; text-transform: uppercase; letter-spacing: -0.5px;">JICA Standard Anchor Block Calculation Report</h1>
+                <div style="font-size: 11px; color: #475569; display: flex; justify-content: space-between; border-top: 1px solid #e2e8f0; padding-top: 6px;">
                     <span><strong>Project:</strong> JICA Hydropower Penstock Anchor Block</span>
-                    <span><strong>Date:</strong> 2026-07-14</span>
-                    <span><strong>Reference:</strong> AB-1 Stability Audit</span>
+                    <span><strong>Date:</strong> 2026-07-21</span>
+                    <span><strong>Standard:</strong> JICA Guidelines for Hydropower Penstock Anchor Blocks</span>
                 </div>
             </div>
             
-            <!-- Section 1 -->
-            <div class="report-section" style="margin-bottom: 20px;">
-                <h3 style="font-size: 12px; font-weight: 700; color: #0f172a; text-transform: uppercase; border-bottom: 1px solid #94a3b8; padding-bottom: 4px; margin-bottom: 8px;">1. Geometric Inputs & Boundary Parameters</h3>
-                <table style="width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 12px;">
+            <!-- Section 1: Method of Stability Analysis -->
+            <div class="report-section" style="margin-bottom: 25px;">
+                <h2 style="font-size: 14px; font-weight: 800; color: #0f172a; text-transform: uppercase; border-bottom: 2px solid #0f172a; padding-bottom: 4px; margin-bottom: 12px;">(1) Method of Stability Analysis</h2>
+                
+                <h3 style="font-size: 12px; font-weight: 700; color: #1e293b; margin: 10px 0 6px 0;">(A) Definition of Variables</h3>
+                <table style="width: 100%; border-collapse: collapse; font-size: 9.5px; margin-bottom: 15px;">
                     <tbody>
                         <tr>
-                            <td style="padding: 4px; border: 1px solid #cbd5e1; width: 25%;"><strong>Block Length B:</strong></td>
-                            <td style="padding: 4px; border: 1px solid #cbd5e1; width: 25%;">${p.B.toFixed(2)} m</td>
-                            <td style="padding: 4px; border: 1px solid #cbd5e1; width: 25%;"><strong>Block Width W:</strong></td>
-                            <td style="padding: 4px; border: 1px solid #cbd5e1; width: 25%;">${p.W.toFixed(2)} m</td>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1; width: 35%;"><strong>&delta;</strong> : vertical angle of upstream pipe axis</td>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1; width: 15%;">${deg(delta_val).toFixed(3)}&deg;</td>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1; width: 35%;"><strong>&delta;'</strong> : vertical angle of downstream pipe axis</td>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1; width: 15%;">${deg(delta_prime_val).toFixed(3)}&deg;</td>
                         </tr>
                         <tr>
-                            <td style="padding: 4px; border: 1px solid #cbd5e1;"><strong>Block Height H_ab:</strong></td>
-                            <td style="padding: 4px; border: 1px solid #cbd5e1;">${p.H_ab.toFixed(2)} m</td>
-                            <td style="padding: 4px; border: 1px solid #cbd5e1;"><strong>Transverse Base B_yz:</strong></td>
-                            <td style="padding: 4px; border: 1px solid #cbd5e1;">${p.B_yz.toFixed(2)} m</td>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1;"><strong>&phi;</strong> : vertical intersection angle (&delta; - &delta;')</td>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1;">${deg(phi_val).toFixed(3)}&deg;</td>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1;"><strong>&theta;</strong> : horizontal intersection angle</td>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1;">${p.theta.toFixed(3)}&deg;</td>
                         </tr>
                         <tr>
-                            <td style="padding: 4px; border: 1px solid #cbd5e1;"><strong>Concrete density:</strong></td>
-                            <td style="padding: 4px; border: 1px solid #cbd5e1;">${p.wc.toFixed(2)} t/m³</td>
-                            <td style="padding: 4px; border: 1px solid #cbd5e1;"><strong>Horizontal Seismic Kh:</strong></td>
-                            <td style="padding: 4px; border: 1px solid #cbd5e1;">${p.Kh.toFixed(2)}</td>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1;"><strong>L</strong> : pipe length between I.P and upstream exp. joint</td>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1;">${p.L.toFixed(3)} m</td>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1;"><strong>L'</strong> : pipe length between I.P and downstream exp. joint</td>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1;">${p.L_prime.toFixed(3)} m</td>
                         </tr>
                         <tr>
-                            <td style="padding: 4px; border: 1px solid #cbd5e1;"><strong>Pipe Diameter D:</strong></td>
-                            <td style="padding: 4px; border: 1px solid #cbd5e1;">${p.D.toFixed(3)} m</td>
-                            <td style="padding: 4px; border: 1px solid #cbd5e1;"><strong>Static Design Head H:</strong></td>
-                            <td style="padding: 4px; border: 1px solid #cbd5e1;">${p.H.toFixed(2)} m</td>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1;"><strong>l</strong> : pipe length between I.P and upstream saddle pier</td>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1;">${p.l.toFixed(3)} m</td>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1;"><strong>l'</strong> : pipe length between I.P and downstream saddle pier</td>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1;">${p.l_prime.toFixed(3)} m</td>
                         </tr>
                         <tr>
-                            <td style="padding: 4px; border: 1px solid #cbd5e1;"><strong>Upstream Slope δ:</strong></td>
-                            <td style="padding: 4px; border: 1px solid #cbd5e1;">${deg(delta_val).toFixed(3)}°</td>
-                            <td style="padding: 4px; border: 1px solid #cbd5e1;"><strong>Downstream Slope δ':</strong></td>
-                            <td style="padding: 4px; border: 1px solid #cbd5e1;">${deg(delta_prime_val).toFixed(3)}°</td>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1;"><strong>D</strong> : inside diameter of penstock pipe</td>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1;">${p.D.toFixed(3)} m</td>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1;"><strong>A</strong> : inside sectional area of penstock pipe</td>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1;">${A_pipe.toFixed(3)} m&sup2;</td>
                         </tr>
                         <tr>
-                            <td style="padding: 4px; border: 1px solid #cbd5e1;"><strong>Horizontal Bend θ:</strong></td>
-                            <td style="padding: 4px; border: 1px solid #cbd5e1;">${p.theta.toFixed(3)}°</td>
-                            <td style="padding: 4px; border: 1px solid #cbd5e1;"><strong>Allowable Soil qa:</strong></td>
-                            <td style="padding: 4px; border: 1px solid #cbd5e1;">${p.qa.toFixed(2)} t/m²</td>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1;"><strong>t / t'</strong> : shell thickness upstream / downstream</td>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1;">${p.t.toFixed(4)} / ${p.t_prime.toFixed(4)} m</td>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1;"><strong>H / He / He'</strong> : static / upstream / downstream design head</td>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1;">${p.H.toFixed(1)} / ${p.He.toFixed(1)} / ${p.He_prime.toFixed(1)} m</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1;"><strong>Q</strong> : maximum discharge</td>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1;">${p.Q.toFixed(2)} m&sup3;/s</td>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1;"><strong>s / s'</strong> : pipe shell weight per meter</td>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1;">${s.toFixed(3)} / ${s_prime.toFixed(3)} t/m</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1;"><strong>w</strong> : weight of contained water per meter</td>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1;">${w.toFixed(3)} t/m</td>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1;"><strong>wc / rs</strong> : unit weight of concrete / steel</td>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1;">${p.wc.toFixed(2)} / ${p.rs.toFixed(2)} t/m&sup3;</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1;"><strong>c / f / fe</strong> : friction coefficients (saddle / water / joint)</td>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1;">${p.c.toFixed(2)} / ${p.f.toFixed(2)} / ${p.fe.toFixed(2)} t/m</td>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1;"><strong>Kh / &lambda;</strong> : seismic coefficient / base friction</td>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1;">${p.Kh.toFixed(2)} / ${p.lambda.toFixed(2)}</td>
                         </tr>
                     </tbody>
                 </table>
+
+                <h3 style="font-size: 12px; font-weight: 700; color: #1e293b; margin: 10px 0 6px 0;">(B) Acting Force Formulations on Anchor Block</h3>
+                <div style="font-size: 9.5px; line-height: 1.5; color: #334155; display: flex; flex-direction: column; gap: 6px;">
+                    <div><strong>(i) Thrust perpendicular to pipe axis due to dead weight of pipe and water:</strong> W = 1/2&middot;(w+s)&middot;l&middot;cos(&delta;), W' = 1/2&middot;(w+s')&middot;l'&middot;cos(&delta;')</div>
+                    <div><strong>(ii) Thrust along pipe axis due to dead weight of pipe:</strong> P1 = s&middot;L&middot;sin(&delta;), P1' = s'&middot;L'&middot;sin(&delta;')</div>
+                    <div><strong>(iii) Thrust due to friction of water in pipe:</strong> P2 = (2&middot;f&middot;Q&sup2; / (g&middot;&pi;&middot;D&sup3;))&middot;L&middot;&gamma;_w, P2' = (2&middot;f&middot;Q&sup2; / (g&middot;&pi;&middot;D&sup3;))&middot;L'&middot;&gamma;_w</div>
+                    <div><strong>(iv) Centrifugal force acting on bend point:</strong> Pv = 2&middot;(v&sup2;/g)&middot;A&middot;sin(&phi;/2)&middot;&gamma;_w, Ph = 2&middot;(v&sup2;/g)&middot;A&middot;sin(&theta;/2)&middot;&gamma;_w</div>
+                    <div><strong>(v) Thrust due to inner pressure acting on expansion joint:</strong> P3 = He&middot;&pi;&middot;D&middot;t&middot;&gamma;_w, P3' = He'&middot;&pi;&middot;D&middot;t'&middot;&gamma;_w</div>
+                    <div><strong>(vi) Unbalanced force due to water pressure acting on bend point:</strong> Prv = 2&middot;H&middot;A&middot;sin(&phi;/2)&middot;&gamma;_w, Prh = 2&middot;H&middot;A&middot;sin(&theta;/2)&middot;&gamma;_w</div>
+                    <div><strong>(vii) Thrust due to temperature change:</strong> F = F1 + F2 = c&middot;(w+s)&middot;(L - l/2)&middot;cos(&delta;) + fe&middot;&pi;&middot;(D+2t), F' = F1' + F2' = c&middot;(w+s')&middot;(L' - l'/2)&middot;cos(&delta;') + fe&middot;&pi;&middot;(D+2t')</div>
+                    <div><strong>(viii) Dead weight of anchor block:</strong> WA = wc &times; V_concrete</div>
+                    <div><strong>(ix) Seismic force:</strong> F_seismic = F_WA + F_p, where F_WA = Kh&middot;WA, F_p = Kh&middot;[(w+s)&middot;l/2 + (w+s')&middot;l'/2]</div>
+                </div>
+
+                <h3 style="font-size: 12px; font-weight: 700; color: #1e293b; margin: 12px 0 6px 0;">(C) Check of Safety Criteria</h3>
+                <div style="font-size: 9.5px; line-height: 1.5; color: #334155;">
+                    <div><strong>(i) Safety for overturning:</strong> e = |B/2 - &Sigma;M / &Sigma;V| &le; B/6 (Static) or B/4 (Seismic)</div>
+                    <div><strong>(ii) Safety for sliding:</strong> Fs = &Sigma;V&middot;&lambda; / &Sigma;H &ge; 2.0 (Static) or 1.2 (Seismic)</div>
+                    <div><strong>(iii) Safety for bearing capacity:</strong> &sigma;_max = (&Sigma;V / A)&middot;(1 &plusmn; 6e/B) &le; qa (Static) or qa &times; 1.50 (Seismic)</div>
+                </div>
             </div>
 
-            <!-- SVG Projection Blueprints Section -->
-            <div class="report-section" style="margin-bottom: 20px; page-break-inside: avoid;">
-                <h3 style="font-size: 12px; font-weight: 700; color: #0f172a; text-transform: uppercase; border-bottom: 1px solid #94a3b8; padding-bottom: 4px; margin-bottom: 8px;">2. Projection Blueprints & Drawings</h3>
+            <!-- Projection Drawings -->
+            <div class="report-section" style="margin-bottom: 25px; page-break-inside: avoid;">
+                <h2 style="font-size: 14px; font-weight: 800; color: #0f172a; text-transform: uppercase; border-bottom: 2px solid #0f172a; padding-bottom: 4px; margin-bottom: 12px;">Projection Blueprints & Structural Drawings</h2>
                 <div style="display: flex; flex-direction: column; gap: 15px;">
                     <div>
-                        <h4 style="font-size: 9px; margin: 0 0 4px 0; color: #475569; text-transform: uppercase;">A. Longitudinal Profile (X-Z Plane)</h4>
+                        <h4 style="font-size: 10px; margin: 0 0 4px 0; color: #475569; text-transform: uppercase;">A. Longitudinal Profile (X-Z Plane)</h4>
                         <div style="border: 1px solid #cbd5e1; padding: 5px; background: #ffffff; height: 220px; overflow: hidden;">
                             ${cleanProfileSvg}
                         </div>
                     </div>
                     <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 15px;">
                         <div>
-                            <h4 style="font-size: 9px; margin: 0 0 4px 0; color: #475569; text-transform: uppercase;">B. Plan Layout (X-Y Plane)</h4>
+                            <h4 style="font-size: 10px; margin: 0 0 4px 0; color: #475569; text-transform: uppercase;">B. Plan Layout (X-Y Plane)</h4>
                             <div style="border: 1px solid #cbd5e1; padding: 5px; background: #ffffff; height: 200px; overflow: hidden;">
                                 ${cleanPlanSvg}
                             </div>
                         </div>
                         <div>
-                            <h4 style="font-size: 9px; margin: 0 0 4px 0; color: #475569; text-transform: uppercase;">C. Transverse Section (Y-Z Plane)</h4>
+                            <h4 style="font-size: 10px; margin: 0 0 4px 0; color: #475569; text-transform: uppercase;">C. Transverse Section (Y-Z Plane)</h4>
                             <div style="border: 1px solid #cbd5e1; padding: 5px; background: #ffffff; height: 200px; overflow: hidden;">
                                 ${cleanSectionSvg}
                             </div>
@@ -3303,9 +3446,9 @@ function generatePrintReportHtml() {
                 </div>
             </div>
 
-            <!-- FBD Section -->
-            <div class="report-section" style="margin-bottom: 20px; page-break-inside: avoid;">
-                <h3 style="font-size: 12px; font-weight: 700; color: #0f172a; text-transform: uppercase; border-bottom: 1px solid #94a3b8; padding-bottom: 4px; margin-bottom: 8px;">3. Free Body Diagrams (FBD) - X-Z & Y-Z Planes</h3>
+            <!-- Free Body Diagrams -->
+            <div class="report-section" style="margin-bottom: 25px; page-break-inside: avoid;">
+                <h2 style="font-size: 14px; font-weight: 800; color: #0f172a; text-transform: uppercase; border-bottom: 2px solid #0f172a; padding-bottom: 4px; margin-bottom: 12px;">Free Body Diagrams (FBD)</h2>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                     <div style="border: 1px solid #cbd5e1; padding: 5px; background: #ffffff; height: 280px; overflow: hidden;">
                         ${generateFBDSVG('XZ')}
@@ -3316,184 +3459,96 @@ function generatePrintReportHtml() {
                 </div>
             </div>
 
-            <!-- Concrete Area and CG -->
-            <div class="report-section" style="margin-bottom: 20px; page-break-inside: avoid;">
-                <h3 style="font-size: 12px; font-weight: 700; color: #0f172a; text-transform: uppercase; border-bottom: 1px solid #94a3b8; padding-bottom: 4px; margin-bottom: 8px;">4. Concrete Volume & Centroid Calculations</h3>
-                <div style="font-size: 10px; line-height: 1.5; margin-bottom: 8px; color: #334155;">
-                    * Concrete Profile Area (X-Z Polygon Area) = <strong>${f.A_profile.toFixed(3)} m²</strong><br>
-                    * Gross Block Volume = <strong>${(f.A_profile * p.W).toFixed(3)} m³</strong><br>
-                    * Net Concrete Volume = <strong>${f.V_concrete.toFixed(3)} m³</strong><br>
-                    * Concrete Dry Weight (WA) = <strong>${f.WA.toFixed(3)} ton</strong><br>
-                    * Center of Gravity (CG) Position: <strong>[X_CG: ${f.x_CG.toFixed(3)}m, Y_CG: ${f.y_CG_stability.toFixed(3)}m, Z_CG: ${f.z_CG.toFixed(3)}m]</strong><br>
-                    * Stepped base minimum z: <strong>${z_min.toFixed(3)}m</strong><br>
-                    * Overturning arms (from base): h_CG = <strong>${h_CG_val.toFixed(3)}m</strong>, h_pipe = <strong>${h_pipe_val.toFixed(3)}m</strong>
-                </div>
-            </div>
-
-            <!-- Force Table -->
-            <div class="report-section" style="margin-bottom: 20px; page-break-inside: avoid;">
-                <h3 style="font-size: 12px; font-weight: 700; color: #0f172a; text-transform: uppercase; border-bottom: 1px solid #94a3b8; padding-bottom: 4px; margin-bottom: 8px;">5. JICA Resolved Force Vector Summary</h3>
-                <table class="report-table" style="width: 100%; border-collapse: collapse; font-size: 9px; margin-top: 5px;">
+            <!-- Section 2: Stability Analysis Calculations -->
+            <div class="report-section" style="margin-bottom: 25px;">
+                <h2 style="font-size: 14px; font-weight: 800; color: #0f172a; text-transform: uppercase; border-bottom: 2px solid #0f172a; padding-bottom: 4px; margin-bottom: 12px;">(2) Stability Analysis Step-by-Step Calculations</h2>
+                
+                <h3 style="font-size: 12px; font-weight: 700; color: #1e293b; margin: 10px 0 6px 0;">(A) Cases for Stability Analysis</h3>
+                <table style="width: 100%; border-collapse: collapse; font-size: 9.5px; margin-bottom: 12px;">
                     <thead>
                         <tr style="background-color: #f1f5f9; border-bottom: 1px solid #cbd5e1;">
-                            <th style="padding: 4px; border: 1px solid #cbd5e1; text-align: left; color: #0f172a;">Force Component</th>
-                            <th style="padding: 4px; border: 1px solid #cbd5e1; text-align: left; color: #0f172a;">Symbol</th>
-                            <th style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; color: #0f172a;">Fx [ton]</th>
-                            <th style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; color: #0f172a;">Fy [ton]</th>
-                            <th style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; color: #0f172a;">Fz [ton]</th>
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: center;">Case</th>
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: left;">Combination of Forces</th>
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: left;">Description</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${forcesRows}
-                        <tr style="font-weight: bold; background-color: #f8fafc; border-top: 1px solid #94a3b8;">
-                            <td style="padding: 4px; border: 1px solid #cbd5e1; color: #0f172a;">Constant Force Resultant Sum</td>
-                            <td style="padding: 4px; border: 1px solid #cbd5e1; font-family: monospace; color: #0f172a;">P</td>
-                            <td style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; color: #0f172a;">${fNum(f.P_vec.x, 3)}</td>
-                            <td style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; color: #0f172a;">${fNum(f.P_vec.y, 3)}</td>
-                            <td style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; color: #0f172a;">${fNum(f.P_vec.z, 3)}</td>
-                        </tr>
+                        <tr><td style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: center;">1</td><td style="padding: 4px 6px; border: 1px solid #cbd5e1; font-family: monospace;">P + F + F'</td><td style="padding: 4px 6px; border: 1px solid #cbd5e1;">Upstream expansion + Downstream expansion</td></tr>
+                        <tr><td style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: center;">2</td><td style="padding: 4px 6px; border: 1px solid #cbd5e1; font-family: monospace;">P + F - F'</td><td style="padding: 4px 6px; border: 1px solid #cbd5e1;">Upstream expansion + Downstream shrinkage</td></tr>
+                        <tr><td style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: center;">3</td><td style="padding: 4px 6px; border: 1px solid #cbd5e1; font-family: monospace;">P - F + F'</td><td style="padding: 4px 6px; border: 1px solid #cbd5e1;">Upstream shrinkage + Downstream expansion</td></tr>
+                        <tr><td style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: center;">4</td><td style="padding: 4px 6px; border: 1px solid #cbd5e1; font-family: monospace;">P - F - F'</td><td style="padding: 4px 6px; border: 1px solid #cbd5e1;">Upstream shrinkage + Downstream shrinkage</td></tr>
                     </tbody>
                 </table>
-            </div>
+                <p style="font-size: 8.5px; color: #475569; margin: 0 0 12px 0;">
+                    * The analysis is conducted on 2 planes: <strong>x-z plane</strong> (flow direction) and <strong>y-z plane</strong> (transverse direction) under static and earthquake conditions (x and -x for x-z plane, y and -y for y-z plane).
+                </p>
 
-            <!-- Section 6: Individual Force Derivations -->
-            <div class="report-section" style="margin-bottom: 20px; page-break-inside: avoid;">
-                <h3 style="font-size: 12px; font-weight: 700; color: #0f172a; text-transform: uppercase; border-bottom: 1px solid #94a3b8; padding-bottom: 4px; margin-bottom: 8px;">6. Individual Force Formula Substitutions</h3>
-                <div style="font-size: 9px; line-height: 1.4; color: #334155; display: flex; flex-direction: column; gap: 8px;">
-                    <div>
-                        <strong>1. Concrete Block Dead Weight (W_A):</strong><br>
-                        Formula: W_A = [ A_profile &times; W - A_pipe &times; L_internal ] &times; w_c<br>
-                        Substitution: [ ${f.A_profile.toFixed(3)} &times; ${p.W.toFixed(2)} - ${A_pipe.toFixed(5)} &times; ${f.L_internal.toFixed(3)} ] &times; ${p.wc.toFixed(2)} = <strong>${f.WA.toFixed(3)} ton</strong>
-                    </div>
-                    <div>
-                        <strong>2. Pipe & Water weight (Upstream) (W):</strong><br>
-                        Formula: W = 0.5 &times; (w + s) &times; l &times; cos(&delta;)<br>
-                        Substitution: 0.5 &times; (${w.toFixed(4)} + ${s.toFixed(4)}) &times; ${p.l.toFixed(3)} &times; cos(${deg(delta_val).toFixed(2)}&deg;) = <strong>${W_val.toFixed(3)} ton</strong> (Fx: ${f.W.x.toFixed(3)}, Fy: ${f.W.y.toFixed(3)}, Fz: ${f.W.z.toFixed(3)})
-                    </div>
-                    <div>
-                        <strong>3. Pipe & Water weight (Downstream) (W'):</strong><br>
-                        Formula: W' = 0.5 &times; (w + s') &times; l' &times; cos(&delta;')<br>
-                        Substitution: 0.5 &times; (${w.toFixed(4)} + ${s_prime.toFixed(4)}) &times; ${p.l_prime.toFixed(3)} &times; cos(${deg(delta_prime_val).toFixed(2)}&deg;) = <strong>${W_prime_val.toFixed(3)} ton</strong> (Fx: ${f.W_prime.x.toFixed(3)}, Fy: ${f.W_prime.y.toFixed(3)}, Fz: ${f.W_prime.z.toFixed(3)})
-                    </div>
-                    <div>
-                        <strong>4. Pipe shell weight (Upstream) (P1):</strong><br>
-                        Formula: P1 = s &times; L &times; sin(&delta;)<br>
-                        Substitution: ${s.toFixed(4)} &times; ${p.L.toFixed(2)} &times; sin(${deg(delta_val).toFixed(2)}&deg;) = <strong>${P1_val.toFixed(3)} ton</strong> (Fx: ${f.P1.x.toFixed(3)}, Fy: ${f.P1.y.toFixed(3)}, Fz: ${f.P1.z.toFixed(3)})
-                    </div>
-                    <div>
-                        <strong>5. Pipe shell weight (Downstream) (P1'):</strong><br>
-                        Formula: P1' = s' &times; L' &times; sin(&delta;')<br>
-                        Substitution: ${s_prime.toFixed(4)} &times; ${p.L_prime.toFixed(2)} &times; sin(${deg(delta_prime_val).toFixed(2)}&deg;) = <strong>${P1_prime_val.toFixed(3)} ton</strong> (Fx: ${f.P1_prime.x.toFixed(3)}, Fy: ${f.P1_prime.y.toFixed(3)}, Fz: ${f.P1_prime.z.toFixed(3)})
-                    </div>
-                    <div>
-                        <strong>6. Hydrodynamic friction (Upstream) (P2):</strong><br>
-                        Formula: P2 = (2 &times; f &times; Q&sup2; / (g &times; &pi; &times; D&sup3;)) &times; L<br>
-                        Substitution: (2 &times; ${p.f.toFixed(3)} &times; ${p.Q.toFixed(3)}&sup2; / (9.81 &times; &pi; &times; ${p.D.toFixed(3)}&sup3;)) &times; ${p.L.toFixed(2)} = <strong>${P2_val.toFixed(4)} ton</strong> (Fx: ${f.P2.x.toFixed(3)}, Fy: ${f.P2.y.toFixed(3)}, Fz: ${f.P2.z.toFixed(3)})
-                    </div>
-                    <div>
-                        <strong>7. Hydrodynamic friction (Downstream) (P2'):</strong><br>
-                        Formula: P2' = (2 &times; f &times; Q&sup2; / (g &times; &pi; &times; D&sup3;)) &times; L'<br>
-                        Substitution: (2 &times; ${p.f.toFixed(3)} &times; ${p.Q.toFixed(3)}&sup2; / (9.81 &times; &pi; &times; ${p.D.toFixed(3)}&sup3;)) &times; ${p.L_prime.toFixed(2)} = <strong>${P2_prime_val.toFixed(4)} ton</strong> (Fx: ${f.P2_prime.x.toFixed(3)}, Fy: ${f.P2_prime.y.toFixed(3)}, Fz: ${f.P2_prime.z.toFixed(3)})
-                    </div>
-                    <div>
-                        <strong>8. Centrifugal Force from Vertical Bend (Pv):</strong><br>
-                        Formula: Pv = 2 &times; (v_w&sup2; / g) &times; A_pipe &times; sin(&phi;/2) &times; &gamma;_w<br>
-                        Substitution: 2 &times; (${v_water.toFixed(3)}&sup2; / 9.81) &times; ${A_pipe.toFixed(4)} &times; sin(${deg(phi_val).toFixed(2)}&deg; / 2) &times; 1.0 t/m&sup3; = <strong>${Pv_val.toFixed(4)} ton</strong> (Fx: ${f.Pv.x.toFixed(3)}, Fy: ${f.Pv.y.toFixed(3)}, Fz: ${f.Pv.z.toFixed(3)})
-                    </div>
-                    <div>
-                        <strong>9. Centrifugal Force from Horizontal Bend (Ph):</strong><br>
-                        Formula: Ph = 2 &times; (v_w&sup2; / g) &times; A_pipe &times; sin(&theta;/2) &times; &gamma;_w<br>
-                        Substitution: 2 &times; (${v_water.toFixed(3)}&sup2; / 9.81) &times; ${A_pipe.toFixed(4)} &times; sin(${p.theta.toFixed(2)}&deg; / 2) &times; 1.0 t/m&sup3; = <strong>${Ph_val.toFixed(4)} ton</strong>
-                    </div>
-                    <div>
-                        <strong>10. Upstream Expansion Joint Pressure (P3):</strong><br>
-                        Formula: P3 = He &times; &pi; &times; D &times; t &times; &gamma;_w<br>
-                        Substitution: ${p.He.toFixed(2)} &times; &pi; &times; ${p.D.toFixed(3)} &times; ${p.t.toFixed(4)} &times; 1.0 t/m&sup3; = <strong>${P3_val.toFixed(3)} ton</strong> (Fx: ${f.P3.x.toFixed(3)}, Fy: ${f.P3.y.toFixed(3)}, Fz: ${f.P3.z.toFixed(3)})
-                    </div>
-                    <div>
-                        <strong>11. Downstream Expansion Joint Pressure (P3'):</strong><br>
-                        Formula: P3' = He' &times; &pi; &times; D &times; t' &times; &gamma;_w<br>
-                        Substitution: ${p.He_prime.toFixed(2)} &times; &pi; &times; ${p.D.toFixed(3)} &times; ${p.t_prime.toFixed(4)} &times; 1.0 t/m&sup3; = <strong>${P3_prime_val.toFixed(3)} ton</strong> (Fx: ${f.P3_prime.x.toFixed(3)}, Fy: ${f.P3_prime.y.toFixed(3)}, Fz: ${f.P3_prime.z.toFixed(3)})
-                    </div>
-                    <div>
-                        <strong>12. Unbalanced Vertical Pressure (Prv):</strong><br>
-                        Formula: Prv = 2 &times; H &times; A_pipe &times; sin(&phi;/2) &times; &gamma;_w<br>
-                        Substitution: 2 &times; ${p.H.toFixed(2)} &times; ${A_pipe.toFixed(4)} &times; sin(${deg(phi_val).toFixed(2)}&deg; / 2) &times; 1.0 t/m&sup3; = <strong>${Prv_val.toFixed(3)} ton</strong> (Fx: ${f.Prv.x.toFixed(3)}, Fy: ${f.Prv.y.toFixed(3)}, Fz: ${f.Prv.z.toFixed(3)})
-                    </div>
-                    <div>
-                        <strong>13. Unbalanced Horizontal Pressure (Prh):</strong><br>
-                        Formula: Prh = 2 &times; H &times; A_pipe &times; sin(&theta;/2) &times; &gamma;_w<br>
-                        Substitution: 2 &times; ${p.H.toFixed(2)} &times; ${A_pipe.toFixed(4)} &times; sin(${p.theta.toFixed(2)}&deg; / 2) &times; 1.0 t/m&sup3; = <strong>${Prh_val.toFixed(3)} ton</strong>
-                    </div>
-                    <div>
-                        <strong>Temperature force upstream (F):</strong> F_total = c&times;(w+s)&times;(L - l/2)&times;cos(&delta;) + fe&times;&pi;&times;(D+2t) = <strong>${F_total.toFixed(3)} ton</strong> (Fx: ${f.F.x.toFixed(3)}, Fz: ${f.F.z.toFixed(3)})<br>
-                        <strong>Temperature force downstream (F'):</strong> F_prime_total = c&times;(w+s')&times;(L' - l'/2)&times;cos(&delta;') + fe&times;&pi;&times;(D+2t') = <strong>${F_prime.toFixed(3)} ton</strong> (Fx: ${f.F_prime.x.toFixed(3)}, Fz: ${f.F_prime.z.toFixed(3)})
-                    </div>
-                    <div>
-                        <strong>Seismic forces (Kh = ${p.Kh.toFixed(2)}):</strong> F_WA = Kh &times; WA = <strong>${f.F_WA.toFixed(3)} ton</strong>, F_p = Kh &times; PipeWeight = <strong>${f.F_p.toFixed(3)} ton</strong>
-                    </div>
+                <h3 style="font-size: 12px; font-weight: 700; color: #1e293b; margin: 10px 0 6px 0;">(B) Dead Weight, Seismic Forces & Center of Gravity</h3>
+                <div style="font-size: 9.5px; line-height: 1.5; color: #334155; margin-bottom: 15px;">
+                    <div><strong>(a) WA : Dead weight of anchor block:</strong> WA = ${p.wc.toFixed(2)} &times; (${f.A_profile.toFixed(3)} &times; ${p.W.toFixed(2)} - ${A_pipe.toFixed(4)} &times; ${f.L_internal.toFixed(3)}) = <strong>${f.WA.toFixed(3)} ton</strong></div>
+                    <div><strong>(b) FWA : Seismic force for dead weight of anchor block:</strong> FWA = ${p.Kh.toFixed(2)} &times; ${f.WA.toFixed(3)} = <strong>${f.F_WA.toFixed(3)} ton</strong></div>
+                    <div><strong>(c) Fp : Seismic force for penstock pipe & water:</strong> Fp = ${p.Kh.toFixed(2)} &times; [(${w.toFixed(3)}+${s.toFixed(3)})&times;${p.l.toFixed(3)}/2 + (${w.toFixed(3)}+${s_prime.toFixed(3)})&times;${p.l_prime.toFixed(3)}/2] = <strong>${f.F_p.toFixed(3)} ton</strong></div>
+                    <div><strong>(d) Gravity Center of Anchor Block:</strong> x-z plain x = &Sigma;A&middot;x / &Sigma;A = <strong>${f.x_CG.toFixed(3)} m</strong>, y-z plain y = &Sigma;A&middot;y / &Sigma;A = <strong>${f.y_CG_stability.toFixed(3)} m</strong>, z_CG = <strong>${f.z_CG.toFixed(3)} m</strong></div>
                 </div>
-            </div>
 
-            <!-- Case Summaries -->
-            <div class="report-section" style="margin-bottom: 20px;">
-                <h3 style="font-size: 12px; font-weight: 700; color: #0f172a; text-transform: uppercase; border-bottom: 1px solid #94a3b8; padding-bottom: 4px; margin-bottom: 8px;">7. Stability Verification Summary - Longitudinal Plane (X-Z)</h3>
-                <table class="report-table" style="width: 100%; border-collapse: collapse; font-size: 9px; margin-top: 5px;">
+                <h3 style="font-size: 12px; font-weight: 700; color: #1e293b; margin: 15px 0 6px 0;">Table 2.1.1 Thrust Forces Component Breakdown Table</h3>
+                <table style="width: 100%; border-collapse: collapse; font-size: 9px; margin-bottom: 20px;">
                     <thead>
-                        <tr style="background-color: #f1f5f9; border-bottom: 1px solid #cbd5e1;">
-                            <th style="padding: 4px; border: 1px solid #cbd5e1; text-align: left; color: #0f172a;">Load Case</th>
-                            <th style="padding: 4px; border: 1px solid #cbd5e1; text-align: left; color: #0f172a;">EQ Dir</th>
-                            <th style="padding: 4px; border: 1px solid #cbd5e1; text-align: left; color: #0f172a;">Combination</th>
-                            <th style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; color: #0f172a;">V [ton]</th>
-                            <th style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; color: #0f172a;">H [ton]</th>
-                            <th style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; color: #0f172a;">e / limit [m]</th>
-                            <th style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; color: #0f172a;">Sliding Fs</th>
-                            <th style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; color: #0f172a;">Overturning Fot</th>
-                            <th style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; color: #0f172a;">Bearing [t/m²]</th>
-                            <th style="padding: 4px; border: 1px solid #cbd5e1; text-align: left; color: #0f172a;">Status</th>
+                        <tr style="background-color: #f1f5f9; border-bottom: 1.5px solid #0f172a;">
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: left;">Force Component</th>
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: left;">Symbol</th>
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: right;">x-direction [ton]</th>
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: right;">y-direction [ton]</th>
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: right;">z-direction [ton]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${table211_rows}
+                    </tbody>
+                </table>
+
+                <h3 style="font-size: 12px; font-weight: 700; color: #1e293b; margin: 15px 0 6px 0;">Table 2.1.2 Summary of Results of Stability Analysis</h3>
+                <div style="font-size: 10px; font-weight: bold; color: #0f172a; margin: 8px 0 4px 0;">1. x-z plain (Flow Direction)</div>
+                <table style="width: 100%; border-collapse: collapse; font-size: 9px; margin-bottom: 12px;">
+                    <thead>
+                        <tr style="background-color: #f1f5f9; border-bottom: 1.5px solid #0f172a;">
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: left;">Case</th>
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: left;">Earthquake / Load</th>
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: left;">Combination</th>
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: right;">Eccentricity e (m)</th>
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: right;">Sliding Fs</th>
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: right;">Bearing &sigma;max (t/m&sup2;)</th>
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: center;">Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${xzCasesRows}
                     </tbody>
                 </table>
-                <p style="font-size: 8px; color: #475569; margin: 4px 0 0 0; font-style: italic; line-height: 1.3;">
-                    * <strong>Eccentricity Limit Note:</strong> In accordance with JICA gravity design guidelines, the allowable eccentricity limit is dynamically computed. Under seismic loading, the limit is extended to the middle-fourth width: B/4 = ${(p.B / 4.0).toFixed(3)} m. Under static conditions (normal/non-seismic), the limit is the middle-third: B/6 = ${(p.B / 6.0).toFixed(3)} m.
-                </p>
-            </div>
 
-            <div class="report-section" style="margin-bottom: 20px;">
-                <h3 style="font-size: 12px; font-weight: 700; color: #0f172a; text-transform: uppercase; border-bottom: 1px solid #94a3b8; padding-bottom: 4px; margin-bottom: 8px;">8. Stability Verification Summary - Transverse Plane (Y-Z)</h3>
-                <table class="report-table" style="width: 100%; border-collapse: collapse; font-size: 9px; margin-top: 5px;">
+                <div style="font-size: 10px; font-weight: bold; color: #0f172a; margin: 8px 0 4px 0;">2. y-z plain (Transverse Direction)</div>
+                <table style="width: 100%; border-collapse: collapse; font-size: 9px; margin-bottom: 20px;">
                     <thead>
-                        <tr style="background-color: #f1f5f9; border-bottom: 1px solid #cbd5e1;">
-                            <th style="padding: 4px; border: 1px solid #cbd5e1; text-align: left; color: #0f172a;">Load Case</th>
-                            <th style="padding: 4px; border: 1px solid #cbd5e1; text-align: left; color: #0f172a;">EQ Dir</th>
-                            <th style="padding: 4px; border: 1px solid #cbd5e1; text-align: left; color: #0f172a;">Combination</th>
-                            <th style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; color: #0f172a;">V [ton]</th>
-                            <th style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; color: #0f172a;">H [ton]</th>
-                            <th style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; color: #0f172a;">e / limit [m]</th>
-                            <th style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; color: #0f172a;">Sliding Fs</th>
-                            <th style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; color: #0f172a;">Overturning Fot</th>
-                            <th style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; color: #0f172a;">Bearing [t/m²]</th>
-                            <th style="padding: 4px; border: 1px solid #cbd5e1; text-align: left; color: #0f172a;">Status</th>
+                        <tr style="background-color: #f1f5f9; border-bottom: 1.5px solid #0f172a;">
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: left;">Case</th>
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: left;">Earthquake / Load</th>
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: left;">Combination</th>
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: right;">Eccentricity e (m)</th>
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: right;">Sliding Fs</th>
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: right;">Bearing &sigma;max (t/m&sup2;)</th>
+                            <th style="padding: 4px 6px; border: 1px solid #cbd5e1; text-align: center;">Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${yzCasesRows}
                     </tbody>
                 </table>
-                <p style="font-size: 8px; color: #475569; margin: 4px 0 0 0; font-style: italic; line-height: 1.3;">
-                    * <strong>Eccentricity Limit Note:</strong> Under seismic loading, the transverse eccentricity limit is: B_yz/4 = ${(p.B_yz / 4.0).toFixed(3)} m. Under static conditions, the limit is: B_yz/6 = ${(p.B_yz / 6.0).toFixed(3)} m.
-                </p>
             </div>
 
-            <!-- Detailed Case Calculations -->
-            <div class="report-section" style="margin-bottom: 20px;">
-                <h3 style="font-size: 12px; font-weight: 700; color: #0f172a; text-transform: uppercase; border-bottom: 1px solid #94a3b8; padding-bottom: 4px; margin-bottom: 8px;">9. Step-by-Step Load Cases Verification (All ${cases.length} Combinations)</h3>
-                <div style="display: flex; flex-direction: column; gap: 10px;">
-                    ${detailedCasesVerification}
-                </div>
+            <!-- Detailed JICA Page-by-Page Calculation Sheets -->
+            <div class="report-section" style="margin-bottom: 25px;">
+                <h2 style="font-size: 14px; font-weight: 800; color: #0f172a; text-transform: uppercase; border-bottom: 2px solid #0f172a; padding-bottom: 4px; margin-bottom: 15px;">Anchor Block Calculation Sheets (Detailed Load Case Verification)</h2>
+                ${detailedCasesVerification}
             </div>
         </div>
     `;
