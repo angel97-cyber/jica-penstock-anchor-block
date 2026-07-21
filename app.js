@@ -1004,8 +1004,9 @@ function generateFBDSVG(plane) {
 
 /**
  * Generates an Isometric 3D Wireframe SVG rendering of the Anchor Block with CG point and (X,Y,Z) coordinates.
+ * @param {boolean} isReport - If true, uses a light theme suitable for printable PDF reports.
  */
-function generate3DSVG() {
+function generate3DSVG(isReport = false) {
     const p = state.params || {};
     const c = state.coordinates || {};
     const f = (state.results && state.results.forces) ? state.results.forces : { WA: 100, x_CG: (p.B||5)/2, y_CG_stability: (p.B_yz||4)/2, z_CG: (p.H_ab||3)/2 };
@@ -1018,18 +1019,8 @@ function generate3DSVG() {
     const y_CG = (typeof f.y_CG_stability === 'number' && !isNaN(f.y_CG_stability)) ? f.y_CG_stability : W / 2.0;
     const z_CG = (typeof f.z_CG === 'number' && !isNaN(f.z_CG)) ? f.z_CG : H / 2.0;
     
-    const svgW = 550;
-    const svgH = 340;
-    
-    const scale = Math.min(220 / Math.max(B, W, H), 38);
-    const offsetX = 200;
-    const offsetY = 260;
-    
-    const project = (x, y, z) => {
-        const px = offsetX + (x * 0.866 - y * 0.707) * scale;
-        const py = offsetY - (z * 0.95) + (y * 0.35 * scale) - (x * 0.30 * scale);
-        return { x: isNaN(px) ? offsetX : px, y: isNaN(py) ? offsetY : py };
-    };
+    const svgW = isReport ? 650 : 550;
+    const svgH = isReport ? 340 : 340;
 
     const xzPts = (c.xzCoords && c.xzCoords.length >= 3)
         ? c.xzCoords.filter(pt => pt && typeof pt.x === 'number' && !isNaN(pt.x) && typeof pt.z === 'number' && !isNaN(pt.z))
@@ -1037,13 +1028,54 @@ function generate3DSVG() {
         
     const validPts = xzPts.length >= 3 ? xzPts : [{x: 0, z: 0}, {x: B, z: 0}, {x: B, z: H}, {x: 0, z: H}];
     const z_min = Math.min(...validPts.map(pt => pt.z || 0));
-    
-    const frontPts = validPts.map(pt => ({ ...project(pt.x, 0, pt.z - z_min), orig: pt }));
-    const backPts = validPts.map(pt => ({ ...project(pt.x, W, pt.z - z_min), orig: pt }));
-    
+
+    // Raw isometric projection (unscaled, un-offset)
+    const rawProject = (x, y, z) => {
+        const rx = x * 0.866 - y * 0.707;
+        const ry = -z * 0.85 + y * 0.35 + x * 0.30;
+        return { x: rx, y: ry };
+    };
+
+    // Gather all 3D points to compute exact bounding box
+    const all3DPts = [];
+    validPts.forEach(pt => {
+        all3DPts.push({ x: pt.x, y: 0, z: pt.z - z_min });
+        all3DPts.push({ x: pt.x, y: W, z: pt.z - z_min });
+    });
+    all3DPts.push({ x: x_CG, y: y_CG, z: z_CG - z_min });
+    all3DPts.push({ x: B + 1.2, y: 0, z: 0 });
+    all3DPts.push({ x: 0, y: W + 1.2, z: 0 });
+    all3DPts.push({ x: 0, y: 0, z: H + 1.0 });
+
+    const rawProjected = all3DPts.map(pt => rawProject(pt.x, pt.y, pt.z));
+    const minRx = Math.min(...rawProjected.map(pt => pt.x));
+    const maxRx = Math.max(...rawProjected.map(pt => pt.x));
+    const minRy = Math.min(...rawProjected.map(pt => pt.y));
+    const maxRy = Math.max(...rawProjected.map(pt => pt.y));
+
+    const spanRx = Math.max(0.1, maxRx - minRx);
+    const spanRy = Math.max(0.1, maxRy - minRy);
+
+    const marginX = isReport ? 130 : 110;
+    const marginY = isReport ? 90 : 80;
+
+    const scale = Math.min((svgW - marginX) / spanRx, (svgH - marginY) / spanRy);
+    const offsetX = (svgW - (minRx + maxRx) * scale) / 2.0;
+    const offsetY = (svgH - (minRy + maxRy) * scale) / 2.0;
+
+    const project = (x, y, z) => {
+        const r = rawProject(x, y, z);
+        const px = offsetX + r.x * scale;
+        const py = offsetY + r.y * scale;
+        return { x: isNaN(px) ? svgW / 2 : px, y: isNaN(py) ? svgH / 2 : py };
+    };
+
+    const frontPts = validPts.map(pt => project(pt.x, 0, pt.z - z_min));
+    const backPts = validPts.map(pt => project(pt.x, W, pt.z - z_min));
+
     const frontPolyStr = frontPts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
     const backPolyStr = backPts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
-    
+
     let sideFacesSvg = '';
     for (let i = 0; i < validPts.length; i++) {
         const nextIdx = (i + 1) % validPts.length;
@@ -1052,28 +1084,30 @@ function generate3DSVG() {
         const p3 = backPts[nextIdx];
         const p4 = backPts[i];
         
+        const sideFill = isReport ? '#f1f5f9' : 'url(#sideGradient)';
+        const sideStroke = isReport ? '#475569' : '#334155';
+
         sideFacesSvg += `
             <polygon points="${p1.x.toFixed(1)},${p1.y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)} ${p3.x.toFixed(1)},${p3.y.toFixed(1)} ${p4.x.toFixed(1)},${p4.y.toFixed(1)}" 
-                     fill="url(#sideGradient)" stroke="#475569" stroke-width="1" />
+                     fill="${sideFill}" stroke="${sideStroke}" stroke-width="1.2" />
         `;
     }
-    
+
     const cgProj = project(x_CG, y_CG, z_CG - z_min);
     const cgBaseProj = project(x_CG, y_CG, 0);
-    const cgXProj = project(x_CG, 0, 0);
-    const cgYProj = project(0, y_CG, 0);
 
     let pipe3DSvg = '';
     if (c.pipeXZ && c.pipeXZ.length >= 2 && c.pipeXZ[0] && c.pipeXZ[1]) {
-        const pipe1 = project(c.pipeXZ[0].x, W/2.0, c.pipeXZ[0].z - z_min);
-        const pipe2 = project(c.pipeXZ[1].x, W/2.0, c.pipeXZ[1].z - z_min);
-        const pipe3 = c.pipeXZ[2] ? project(c.pipeXZ[2].x, W/2.0, c.pipeXZ[2].z - z_min) : pipe2;
+        const pipe1 = project(c.pipeXZ[0].x, W / 2.0, c.pipeXZ[0].z - z_min);
+        const pipe2 = project(c.pipeXZ[1].x, W / 2.0, c.pipeXZ[1].z - z_min);
+        const pipe3 = c.pipeXZ[2] ? project(c.pipeXZ[2].x, W / 2.0, c.pipeXZ[2].z - z_min) : pipe2;
         
+        const pipeStroke = isReport ? '#0284c7' : '#00f2fe';
         pipe3DSvg = `
             <polyline points="${pipe1.x.toFixed(1)},${pipe1.y.toFixed(1)} ${pipe2.x.toFixed(1)},${pipe2.y.toFixed(1)} ${pipe3.x.toFixed(1)},${pipe3.y.toFixed(1)}" 
-                      fill="none" stroke="#00f2fe" stroke-width="6" stroke-opacity="0.4" stroke-linecap="round" />
+                      fill="none" stroke="${pipeStroke}" stroke-width="5" stroke-opacity="0.3" stroke-linecap="round" />
             <polyline points="${pipe1.x.toFixed(1)},${pipe1.y.toFixed(1)} ${pipe2.x.toFixed(1)},${pipe2.y.toFixed(1)} ${pipe3.x.toFixed(1)},${pipe3.y.toFixed(1)}" 
-                      fill="none" stroke="#00f2fe" stroke-width="1.8" stroke-dasharray="4 2" />
+                      fill="none" stroke="${pipeStroke}" stroke-width="2" stroke-dasharray="4 2" />
         `;
     }
 
@@ -1085,16 +1119,32 @@ function generate3DSVG() {
         { name: `P4(0,${W.toFixed(1)},0)`, x: 0, y: W, z: 0 }
     ];
     
+    const nodeTextFill = isReport ? '#334155' : '#cbd5e1';
     keyVertices.forEach(v => {
         const vp = project(v.x, v.y, v.z);
         vertexLabelsSvg += `
-            <circle cx="${vp.x.toFixed(1)}" cy="${vp.y.toFixed(1)}" r="3" fill="#cbd5e1" stroke="#0f172a" stroke-width="1" />
-            <text x="${(vp.x + 5).toFixed(1)}" y="${(vp.y + 3).toFixed(1)}" fill="#94a3b8" font-size="8" font-family="monospace">${v.name}</text>
+            <circle cx="${vp.x.toFixed(1)}" cy="${vp.y.toFixed(1)}" r="3" fill="${nodeTextFill}" stroke="#0f172a" stroke-width="1" />
+            <text x="${(vp.x + 5).toFixed(1)}" y="${(vp.y + 3).toFixed(1)}" fill="${nodeTextFill}" font-size="8.5" font-weight="bold" font-family="monospace">${v.name}</text>
         `;
     });
 
+    const bgFill = isReport ? '#ffffff' : '#060911';
+    const borderStyle = isReport ? 'border: 1px solid #cbd5e1;' : 'border: 1px solid rgba(255,255,255,0.08);';
+    const frontFill = isReport ? '#e2e8f0' : 'url(#frontGradient)';
+    const frontStroke = isReport ? '#0f172a' : '#38bdf8';
+    const dropLineStroke = isReport ? '#d97706' : '#ff9100';
+
+    const badgeBg = isReport ? '#ffffff' : 'rgba(15, 23, 42, 0.95)';
+    const badgeStroke = isReport ? '#d97706' : '#ff9100';
+    const badgeTitleFill = isReport ? '#b45309' : '#ff9100';
+    const badgeCoordFill = isReport ? '#0369a1' : '#00f2fe';
+
+    // Position badge intelligently to prevent clipping off bounds
+    const badgeX = Math.min(svgW - 200, Math.max(10, cgProj.x + 15));
+    const badgeY = Math.max(15, Math.min(svgH - 45, cgProj.y - 20));
+
     return `
-        <svg width="100%" height="100%" viewBox="0 0 ${svgW} ${svgH}" style="background-color: #060911;">
+        <svg width="100%" height="100%" viewBox="0 0 ${svgW} ${svgH}" style="background-color: ${bgFill}; ${borderStyle}">
             <defs>
                 <linearGradient id="frontGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stop-color="#1e293b" stop-opacity="0.95" />
@@ -1115,55 +1165,51 @@ function generate3DSVG() {
             </defs>
 
             <!-- Coordinate Axes Origin -->
-            <g opacity="0.6">
+            <g opacity="${isReport ? '0.8' : '0.65'}">
                 ${(() => {
                     const o = project(0, 0, 0);
-                    const axX = project(B + 1.5, 0, 0);
-                    const axY = project(0, W + 1.5, 0);
-                    const axZ = project(0, 0, H + 1.2);
+                    const axX = project(B + 1.2, 0, 0);
+                    const axY = project(0, W + 1.2, 0);
+                    const axZ = project(0, 0, H + 0.8);
                     return `
-                        <line x1="${o.x.toFixed(1)}" y1="${o.y.toFixed(1)}" x2="${axX.x.toFixed(1)}" y2="${axX.y.toFixed(1)}" stroke="#ef4444" stroke-width="1.5" />
-                        <text x="${(axX.x + 4).toFixed(1)}" y="${axX.y.toFixed(1)}" fill="#ef4444" font-size="9" font-weight="bold">X</text>
-                        <line x1="${o.x.toFixed(1)}" y1="${o.y.toFixed(1)}" x2="${axY.x.toFixed(1)}" y2="${axY.y.toFixed(1)}" stroke="#22c55e" stroke-width="1.5" />
-                        <text x="${(axY.x - 10).toFixed(1)}" y="${(axY.y + 10).toFixed(1)}" fill="#22c55e" font-size="9" font-weight="bold">Y</text>
-                        <line x1="${o.x.toFixed(1)}" y1="${o.y.toFixed(1)}" x2="${axZ.x.toFixed(1)}" y2="${axZ.y.toFixed(1)}" stroke="#3b82f6" stroke-width="1.5" />
-                        <text x="${axZ.x.toFixed(1)}" y="${(axZ.y - 4).toFixed(1)}" fill="#3b82f6" font-size="9" font-weight="bold">Z</text>
+                        <line x1="${o.x.toFixed(1)}" y1="${o.y.toFixed(1)}" x2="${axX.x.toFixed(1)}" y2="${axX.y.toFixed(1)}" stroke="#ef4444" stroke-width="1.8" />
+                        <text x="${(axX.x + 4).toFixed(1)}" y="${axX.y.toFixed(1)}" fill="#ef4444" font-size="10" font-weight="bold">X</text>
+                        <line x1="${o.x.toFixed(1)}" y1="${o.y.toFixed(1)}" x2="${axY.x.toFixed(1)}" y2="${axY.y.toFixed(1)}" stroke="#16a34a" stroke-width="1.8" />
+                        <text x="${(axY.x - 10).toFixed(1)}" y="${(axY.y + 10).toFixed(1)}" fill="#16a34a" font-size="10" font-weight="bold">Y</text>
+                        <line x1="${o.x.toFixed(1)}" y1="${o.y.toFixed(1)}" x2="${axZ.x.toFixed(1)}" y2="${axZ.y.toFixed(1)}" stroke="#2563eb" stroke-width="1.8" />
+                        <text x="${axZ.x.toFixed(1)}" y="${(axZ.y - 4).toFixed(1)}" fill="#2563eb" font-size="10" font-weight="bold">Z</text>
                     `;
                 })()}
             </g>
 
             <!-- Back Face -->
-            <polygon points="${backPolyStr}" fill="url(#backGradient)" stroke="#334155" stroke-width="1" stroke-dasharray="3 2" />
+            <polygon points="${backPolyStr}" fill="${isReport ? '#f8fafc' : 'url(#backGradient)'}" stroke="${isReport ? '#cbd5e1' : '#334155'}" stroke-width="1" stroke-dasharray="3 2" />
 
             <!-- Connecting Side Quads -->
             ${sideFacesSvg}
 
             <!-- Front Face -->
-            <polygon points="${frontPolyStr}" fill="url(#frontGradient)" stroke="#38bdf8" stroke-width="1.8" />
+            <polygon points="${frontPolyStr}" fill="${frontFill}" stroke="${frontStroke}" stroke-width="2" />
 
             <!-- Pipe Centerline -->
             ${pipe3DSvg}
 
             <!-- CG Drop Lines -->
             <line x1="${cgProj.x.toFixed(1)}" y1="${cgProj.y.toFixed(1)}" x2="${cgBaseProj.x.toFixed(1)}" y2="${cgBaseProj.y.toFixed(1)}" 
-                  stroke="#ff9100" stroke-width="1.2" stroke-dasharray="3 3" />
-            <line x1="${cgBaseProj.x.toFixed(1)}" y1="${cgBaseProj.y.toFixed(1)}" x2="${cgXProj.x.toFixed(1)}" y2="${cgXProj.y.toFixed(1)}" 
-                  stroke="#ff9100" stroke-width="1" stroke-dasharray="2 2" />
-            <line x1="${cgBaseProj.x.toFixed(1)}" y1="${cgBaseProj.y.toFixed(1)}" x2="${cgYProj.x.toFixed(1)}" y2="${cgYProj.y.toFixed(1)}" 
-                  stroke="#ff9100" stroke-width="1" stroke-dasharray="2 2" />
+                  stroke="${dropLineStroke}" stroke-width="1.5" stroke-dasharray="3 3" />
 
             <!-- Vertex Coordinates Labels -->
             ${vertexLabelsSvg}
 
             <!-- CG Center Marker -->
-            <circle cx="${cgProj.x.toFixed(1)}" cy="${cgProj.y.toFixed(1)}" r="8" fill="url(#cgGlow)" />
-            <circle cx="${cgProj.x.toFixed(1)}" cy="${cgProj.y.toFixed(1)}" r="3.5" fill="#ff9100" stroke="#ffffff" stroke-width="1.5" />
+            <circle cx="${cgProj.x.toFixed(1)}" cy="${cgProj.y.toFixed(1)}" r="7" fill="url(#cgGlow)" />
+            <circle cx="${cgProj.x.toFixed(1)}" cy="${cgProj.y.toFixed(1)}" r="3.5" fill="#d97706" stroke="#ffffff" stroke-width="1.5" />
 
             <!-- CG Floating Label Badge -->
-            <g transform="translate(${Math.min(svgW - 190, Math.max(10, cgProj.x + 12))}, ${Math.max(25, Math.min(svgH - 45, cgProj.y - 25))})">
-                <rect x="0" y="0" width="175" height="36" rx="6" fill="rgba(15, 23, 42, 0.9)" stroke="#ff9100" stroke-width="1.5" />
-                <text x="8" y="14" fill="#ff9100" font-size="9.5" font-weight="800">CENTER OF GRAVITY (CG)</text>
-                <text x="8" y="28" fill="#00f2fe" font-size="9" font-weight="700" font-family="monospace">X:${x_CG.toFixed(3)}m Y:${y_CG.toFixed(3)}m Z:${z_CG.toFixed(3)}m</text>
+            <g transform="translate(${badgeX.toFixed(1)}, ${badgeY.toFixed(1)})">
+                <rect x="0" y="0" width="185" height="38" rx="6" fill="${badgeBg}" stroke="${badgeStroke}" stroke-width="1.5" />
+                <text x="8" y="14" fill="${badgeTitleFill}" font-size="9.5" font-weight="800">CENTER OF GRAVITY (CG)</text>
+                <text x="8" y="29" fill="${badgeCoordFill}" font-size="9.5" font-weight="700" font-family="monospace">X:${x_CG.toFixed(3)}m Y:${y_CG.toFixed(3)}m Z:${z_CG.toFixed(3)}m</text>
             </g>
         </svg>
     `;
@@ -2913,7 +2959,7 @@ function initEvents() {
     });
     
     // Blueprint view toggles
-    const views = ['plan', 'profile', 'section', 'all'];
+    const views = ['plan', 'profile', 'section', '3d'];
     views.forEach(v => {
         const btn = document.getElementById(`btn-view-${v}`);
         if (btn) {
@@ -3592,8 +3638,8 @@ function generatePrintReportHtml() {
             <!-- 3D View & Center of Gravity -->
             <div class="report-section" style="margin-bottom: 25px; page-break-inside: avoid;">
                 <h2 style="font-size: 14px; font-weight: 800; color: #0f172a; text-transform: uppercase; border-bottom: 2px solid #0f172a; padding-bottom: 4px; margin-bottom: 12px;">3D Isometric View & Center of Gravity (CG) Spatial Position</h2>
-                <div style="border: 1px solid #cbd5e1; padding: 5px; background: #060911; height: 320px; overflow: hidden; border-radius: 4px;">
-                    ${generate3DSVG()}
+                <div style="border: 1px solid #cbd5e1; padding: 5px; background: #ffffff; height: 320px; overflow: hidden; border-radius: 4px;">
+                    ${generate3DSVG(true)}
                 </div>
             </div>
 
