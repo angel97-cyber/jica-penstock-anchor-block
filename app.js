@@ -725,6 +725,7 @@ function calculateStability() {
                 eccentricityPass,
                 overturningFSPass,
                 slidingPass,
+                bearingPass,
                 limit_qa: allowedBearing,
                 P_p: P_p,
                 R_cohesion: R_cohesion,
@@ -2598,14 +2599,16 @@ function renderChecklists() {
         }
     });
     
-    const updateRow = (id, valText, pass) => {
+    const updateRow = (id, valText, pass, limitText) => {
         const row = document.getElementById(id);
         if (!row) return;
         const indicator = row.querySelector('.chk-indicator');
         const status = row.querySelector('.chk-status');
         const valPlaceholder = row.querySelector('.val');
+        const limitPlaceholder = row.querySelector('.limit');
         
         if (valPlaceholder) valPlaceholder.innerText = valText;
+        if (limitPlaceholder && limitText !== undefined) limitPlaceholder.innerText = limitText;
         
         // Dynamically create or retrieve the manual recommendation info button
         let infoBtn = row.querySelector('.chk-info-btn');
@@ -2664,15 +2667,21 @@ function renderChecklists() {
     const xzCases = state.results.cases.filter(c => c.plane === 'X-Z');
     const yzCases = state.results.cases.filter(c => c.plane === 'Y-Z');
     
-    updateRow('chk-xz-sliding', fNum(xz_minFs, 2), xzCases.every(c => c.slidingPass));
-    updateRow('chk-xz-overturning-fs', fNum(xz_minFot, 2), xzCases.every(c => c.overturningFSPass));
-    updateRow('chk-xz-eccentricity', fNum(xz_maxE, 3) + 'm', xzCases.every(c => c.eccentricityPass));
-    updateRow('chk-xz-bearing', fNum(xz_maxSigma, 2) + ' t/m²', xzCases.every(c => c.bearingPass));
+    const limitFsVal = state.jicaAuditMode ? '2.0' : '1.2';
+    const limitEXZ = fNum(xzCases[0] ? xzCases[0].limit_e : state.params.B / 4.0, 3) + 'm';
+    const limitEYZ = fNum(yzCases[0] ? yzCases[0].limit_e : state.params.B_yz / 4.0, 3) + 'm';
+    const limitQaXZ = fNum(xzCases[0] ? xzCases[0].limit_qa : state.params.qa, 1) + ' t/m²';
+    const limitQaYZ = fNum(yzCases[0] ? yzCases[0].limit_qa : state.params.qa, 1) + ' t/m²';
+
+    updateRow('chk-xz-sliding', fNum(xz_minFs, 2), xzCases.every(c => c.slidingPass), limitFsVal);
+    updateRow('chk-xz-overturning-fs', fNum(xz_minFot, 2), xzCases.every(c => c.overturningFSPass), limitFsVal);
+    updateRow('chk-xz-eccentricity', fNum(xz_maxE, 3) + 'm', xzCases.every(c => c.eccentricityPass), limitEXZ);
+    updateRow('chk-xz-bearing', fNum(xz_maxSigma, 2) + ' t/m²', xzCases.every(c => c.bearingPass), limitQaXZ);
     
-    updateRow('chk-yz-sliding', fNum(yz_minFs, 2), yzCases.every(c => c.slidingPass));
-    updateRow('chk-yz-overturning-fs', fNum(yz_minFot, 2), yzCases.every(c => c.overturningFSPass));
-    updateRow('chk-yz-eccentricity', fNum(yz_maxE, 3) + 'm', yzCases.every(c => c.eccentricityPass));
-    updateRow('chk-yz-bearing', fNum(yz_maxSigma, 2) + ' t/m²', yzCases.every(c => c.bearingPass));
+    updateRow('chk-yz-sliding', fNum(yz_minFs, 2), yzCases.every(c => c.slidingPass), limitFsVal);
+    updateRow('chk-yz-overturning-fs', fNum(yz_minFot, 2), yzCases.every(c => c.overturningFSPass), limitFsVal);
+    updateRow('chk-yz-eccentricity', fNum(yz_maxE, 3) + 'm', yzCases.every(c => c.eccentricityPass), limitEYZ);
+    updateRow('chk-yz-bearing', fNum(yz_maxSigma, 2) + ' t/m²', yzCases.every(c => c.bearingPass), limitQaYZ);
 }
 
 function showRecommendationModal(checkId) {
@@ -3604,7 +3613,7 @@ function generatePrintReportHtml() {
                     <div style="margin-bottom: 4px;"><strong>&Sigma;M = &Sigma;V&middot;${isXZ ? 'x' : 'y'} - &Sigma;H&middot;z = ${cs.sumM.toFixed(3)} ton&middot;m</strong></div>
                     <div style="display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
                         <span><strong>Safety for overturning:</strong> e = ${cs.e.toFixed(3)} ${cs.eccentricityPass ? '<' : '>'} ${cs.limit_e.toFixed(3)} m &bull; <strong style="color:${cs.eccentricityPass ? '#15803d':'#b91c1c'};">${cs.eccentricityPass ? 'PASS':'FAIL'}</strong></span>
-                        <span><strong>Safety for sliding:</strong> Fs = ${cs.Fs.toFixed(2)} ${cs.slidingPass ? '>' : '<'} ${cs.eqLabel === 'Static' ? '2.0' : '1.2'} &bull; <strong style="color:${cs.slidingPass ? '#15803d':'#b91c1c'};">${cs.slidingPass ? 'PASS':'FAIL'}</strong></span>
+                        <span><strong>Safety for sliding:</strong> Fs = ${cs.Fs.toFixed(2)} ${cs.slidingPass ? '>' : '<'} ${state.jicaAuditMode ? '2.0' : (cs.eqLabel === 'Static' ? '2.0' : '1.2')} &bull; <strong style="color:${cs.slidingPass ? '#15803d':'#b91c1c'};">${cs.slidingPass ? 'PASS':'FAIL'}</strong></span>
                         <span><strong>Safety for bearing:</strong> &sigma;max = ${fNum(cs.sigma, 2)} ${cs.bearingPass ? '<' : '>'} ${cs.limit_qa.toFixed(1)} t/m&sup2; &bull; <strong style="color:${cs.bearingPass ? '#15803d':'#b91c1c'};">${cs.bearingPass ? 'PASS':'FAIL'}</strong></span>
                     </div>
                 </div>
