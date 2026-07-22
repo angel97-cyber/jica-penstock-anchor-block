@@ -136,31 +136,31 @@ const presets = {
         coordinates: {
             xyCoords: [
                 { x: 0.0, y: 0.0 },
-                { x: 6.17, y: 0.0 },
-                { x: 6.17, y: 4.719 },
+                { x: 5.901, y: 0.0 },
+                { x: 5.901, y: 4.719 },
                 { x: 0.0, y: 4.719 }
             ],
             pipeXY: [
                 { x: 0.0, y: 2.0 },
                 { x: 3.0, y: 2.0 },
-                { x: 6.17, y: 2.0 }
+                { x: 5.901, y: 3.707 }
             ],
-            cutLineCoords: [ { x: 0.0, y: 2.0 }, { x: 6.17, y: 2.0 } ],
+            cutLineCoords: [ { x: 0.0, y: 2.0 }, { x: 5.901, y: 2.0 } ],
             xzCoords: [
                 { x: 0.0, z: 0.992 },
                 { x: 0.0, z: 4.992 },
-                { x: 3.544, z: 4.992 },
-                { x: 6.170, z: 3.447 },
-                { x: 4.141, z: 0.0 }
+                { x: 3.390, z: 4.992 },
+                { x: 5.901, z: 3.447 },
+                { x: 3.961, z: 0.0 }
             ],
             pipeXZ: [
                 { x: 0.0, z: 3.533 },
                 { x: 3.0, z: 3.000 },
-                { x: 6.17, z: 3.000 }
+                { x: 5.901, z: 2.485 }
             ],
             groundCoords: [
                 { x: 0.0, z: 4.5 },
-                { x: 6.17, z: 4.0 }
+                { x: 5.901, z: 4.0 }
             ],
             yzCoords: [
                 { y: 0.0, z: 0.0 },
@@ -184,31 +184,31 @@ const presets = {
         coordinates: {
             xyCoords: [
                 { x: 0.0, y: 0.0 },
-                { x: 6.17, y: 0.0 },
-                { x: 6.17, y: 4.719 },
+                { x: 5.901, y: 0.0 },
+                { x: 5.901, y: 4.719 },
                 { x: 0.0, y: 4.719 }
             ],
             pipeXY: [
                 { x: 0.0, y: 2.0 },
                 { x: 3.0, y: 2.0 },
-                { x: 6.17, y: 2.0 }
+                { x: 5.901, y: 3.707 }
             ],
-            cutLineCoords: [ { x: 0.0, y: 2.0 }, { x: 6.17, y: 2.0 } ],
+            cutLineCoords: [ { x: 0.0, y: 2.0 }, { x: 5.901, y: 2.0 } ],
             xzCoords: [
                 { x: 0.0, z: 0.992 },
                 { x: 0.0, z: 4.992 },
-                { x: 3.544, z: 4.992 },
-                { x: 6.170, z: 3.447 },
-                { x: 4.141, z: 0.0 }
+                { x: 3.390, z: 4.992 },
+                { x: 5.901, z: 3.447 },
+                { x: 3.961, z: 0.0 }
             ],
             pipeXZ: [
                 { x: 0.0, z: 3.533 },
                 { x: 3.0, z: 3.000 },
-                { x: 6.17, z: 3.000 }
+                { x: 5.901, z: 2.485 }
             ],
             groundCoords: [
                 { x: 0.0, z: 4.5 },
-                { x: 6.17, z: 4.0 }
+                { x: 5.901, z: 4.0 }
             ],
             yzCoords: [
                 { y: 0.0, z: 0.0 },
@@ -239,7 +239,7 @@ const presets = {
             pipeXY: [
                 { x: 0.0, y: 2.75 },
                 { x: 4.0, y: 2.75 },
-                { x: 8.0, y: 2.75 }
+                { x: 8.0, y: 4.75 }
             ],
             cutLineCoords: [ { x: 0.0, y: 2.75 }, { x: 8.0, y: 2.75 } ],
             xzCoords: [
@@ -250,9 +250,9 @@ const presets = {
                 { x: 6.000, z: 0.000 }
             ],
             pipeXZ: [
-                { x: 0.0, z: 5.362 },
+                { x: 0.0, z: 5.232 },
                 { x: 4.0, z: 3.500 },
-                { x: 8.0, z: 2.650 }
+                { x: 8.0, z: 1.768 }
             ],
             groundCoords: [
                 { x: 0.0, z: 5.5 },
@@ -422,12 +422,20 @@ function calculateStability() {
     const x_CG = Math.abs(Cx);
     const z_CG = Math.abs(Cz);
     
-    // JICA centroid coordinate copy-paste bug simulation - Corrected for engineering accuracy
+    // Composite polygon centroid calculation for Y-Z profile (Finding M-1)
     let y_CG_stability;
-    if (state.jicaAuditMode) {
-        // We log the JICA original document typo but fallback to physical coordinate bounds for structural safety
-        y_CG_stability = p.B_yz / 2.0;
-        console.warn("JICA Document Typo (H_ab - z_CG) bypassed in stability equations to prevent geometric impossibility.");
+    const sortedYZ = sortVertices(c.yzCoords);
+    let A_yz = 0, Cy = 0;
+    let n_yz = sortedYZ.length;
+    for (let i = 0; i < n_yz; i++) {
+        let next = (i + 1) % n_yz;
+        let factor = sortedYZ[i].y * sortedYZ[next].z - sortedYZ[next].y * sortedYZ[i].z;
+        A_yz += factor;
+        Cy += (sortedYZ[i].y + sortedYZ[next].y) * factor;
+    }
+    A_yz = Math.abs(A_yz) / 2.0;
+    if (A_yz > 0.001) {
+        y_CG_stability = Math.abs(Cy / (6.0 * A_yz));
     } else {
         y_CG_stability = p.B_yz / 2.0;
     }
@@ -436,7 +444,6 @@ function calculateStability() {
     const W_val = 0.5 * (w + s) * p.l * Math.cos(delta_val);
     const W_prime_val = 0.5 * (w + s_prime) * p.l_prime * Math.cos(delta_prime_val);
     
-    // Corrected Sign Convention: Downward normal weight forces point in negative x and negative z directions
     const W_vec = { x: -W_val * Math.sin(delta_val), y: 0.0, z: -W_val * Math.cos(delta_val) };
     const W_prime_vec = {
         x: -W_prime_val * Math.sin(delta_prime_val) * Math.cos(theta_val),
@@ -447,7 +454,6 @@ function calculateStability() {
     const P1_val = s * p.L * Math.sin(delta_val);
     const P1_prime_val = s_prime * p.L_prime * Math.sin(delta_prime_val);
     
-    // Corrected Sign Convention: Sliding gravity forces push downstream (+x)
     const P1_vec = { x: P1_val * Math.cos(delta_val), y: 0.0, z: -P1_val * Math.sin(delta_val) };
     const P1_prime_vec = {
         x: P1_prime_val * Math.cos(delta_prime_val) * Math.cos(theta_val),
@@ -455,11 +461,10 @@ function calculateStability() {
         z: -P1_prime_val * Math.sin(delta_prime_val)
     };
     
-    const gamma_w = 1.0; // t/m³ fresh water density
+    const gamma_w = 1.0;
     const P2_val = (2 * p.f * (p.Q ** 2) / (g * Math.PI * (p.D ** 3))) * p.L * gamma_w;
     const P2_prime_val = (2 * p.f * (p.Q ** 2) / (g * Math.PI * (p.D ** 3))) * p.L_prime * gamma_w;
     
-    // Corrected Sign Convention: Fluid friction acts along slope in downward flow direction (-z)
     const P2_vec = { x: P2_val * Math.cos(delta_val), y: 0.0, z: -P2_val * Math.sin(delta_val) };
     const P2_prime_vec = {
         x: P2_prime_val * Math.cos(delta_prime_val) * Math.cos(theta_val),
@@ -470,14 +475,12 @@ function calculateStability() {
     const Pv_val = 2 * (v_water ** 2) / g * A_pipe * Math.sin(Math.abs(phi_val) / 2.0) * gamma_w;
     const Ph_val = 2 * (v_water ** 2) / g * A_pipe * Math.sin(theta_val / 2.0) * gamma_w;
     
-    // Corrected Sign Convention: Centrifugal force acts outwards (upwards +z and downstream +x on a downward curve)
     const Pv_vec = { x: Pv_val * Math.sin(Math.abs(phi_val) / 2.0), y: 0.0, z: Pv_val * Math.cos(Math.abs(phi_val) / 2.0) };
     const Ph_vec = { x: Ph_val * Math.sin(theta_val / 2.0), y: Ph_val * Math.cos(theta_val / 2.0), z: 0.0 };
     
     const P3_val = p.He * Math.PI * p.D * p.t * gamma_w;
     const P3_prime_val = p.He_prime * Math.PI * p.D * p.t_prime * gamma_w;
     
-    // Corrected Sign Convention: Upstream pressure pushes downstream (+x, -z). Downstream pressure pushes back upstream (-x, +y, +z)
     const P3_vec = { x: P3_val * Math.cos(delta_val), y: 0.0, z: -P3_val * Math.sin(delta_val) };
     const P3_prime_vec = {
         x: -P3_prime_val * Math.cos(delta_prime_val) * Math.cos(theta_val),
@@ -488,7 +491,6 @@ function calculateStability() {
     const Prv_val = 2 * p.H * A_pipe * Math.sin(Math.abs(phi_val) / 2.0) * gamma_w;
     const Prh_val = 2 * p.H * A_pipe * Math.sin(theta_val / 2.0) * gamma_w;
     
-    // Corrected Sign Convention: Unbalanced pressure acts outwards (upwards +z and downstream +x)
     const Prv_vec = { x: Prv_val * Math.sin(Math.abs(phi_val) / 2.0), y: 0.0, z: Prv_val * Math.cos(Math.abs(phi_val) / 2.0) };
     const Prh_vec = { x: Prh_val * Math.sin(theta_val / 2.0), y: Prh_val * Math.cos(theta_val / 2.0), z: 0.0 };
     
@@ -498,7 +500,6 @@ function calculateStability() {
         z: W_vec.z + W_prime_vec.z + P1_vec.z + P1_prime_vec.z + P2_vec.z + P2_prime_vec.z + Pv_vec.z + Ph_vec.z + P3_vec.z + P3_prime_vec.z + Prv_vec.z + Prh_vec.z
     };
     
-    // Friction of Expansion joint
     const F1 = p.L > 0 ? p.c * (w + s) * (p.L - p.l / 2.0) * Math.cos(delta_val) : 0;
     const F1_prime = p.L_prime > 0 ? p.c * (w + s_prime) * (p.L_prime - p.l_prime / 2.0) * Math.cos(delta_prime_val) : 0;
     const F2 = p.fe * Math.PI * (p.D + 2 * p.t);
@@ -513,63 +514,53 @@ function calculateStability() {
         z: -F_prime * Math.sin(delta_prime_val)
     };
     
-    // Seismic
     const F_WA = p.Kh * WA;
     const F_p = p.Kh * ((w + s) * p.l / 2.0 + (w + s_prime) * p.l_prime / 2.0);
     
     state.results.forces = {
-        w, s, s_prime, A_profile, V_concrete, WA, x_CG, z_CG, y_CG_stability, L_internal,
+        WA, V_concrete, V_pipe, A_profile, L_internal, x_CG, y_CG_stability, z_CG,
         W: W_vec, W_prime: W_prime_vec, P1: P1_vec, P1_prime: P1_prime_vec,
         P2: P2_vec, P2_prime: P2_prime_vec, Pv: Pv_vec, Ph: Ph_vec,
         P3: P3_vec, P3_prime: P3_prime_vec, Prv: Prv_vec, Prh: Prh_vec,
-        F: F_vec, F_prime: F_prime_vec, P_vec, F_WA, F_p
+        P_vec, F1, F1_prime, F2, F2_prime, F: F_vec, F_prime: F_prime_vec,
+        F_WA, F_p
     };
-    
-    // Case Combinations
+
     state.results.cases = [];
-    const cases_temp = [
-        { id: 1, name: 'Case-1', signF: 1.0, signF_prime: 1.0, eq: 'P+F+F\'' },
-        { id: 2, name: 'Case-2', signF: 1.0, signF_prime: -1.0, eq: 'P+F-F\'' },
-        { id: 3, name: 'Case-3', signF: -1.0, signF_prime: 1.0, eq: 'P-F+F\'' },
-        { id: 4, name: 'Case-4', signF: -1.0, signF_prime: -1.0, eq: 'P-F-F\'' }
+    const loadCombos = [
+        { name: 'Case-1', eq: 'P+F+F\'', fSign: 1.0, fPrimeSign: 1.0 },
+        { name: 'Case-2', eq: 'P+F-F\'', fSign: 1.0, fPrimeSign: -1.0 },
+        { name: 'Case-3', eq: 'P-F+F\'', fSign: -1.0, fPrimeSign: 1.0 },
+        { name: 'Case-4', eq: 'P-F-F\'', fSign: -1.0, fPrimeSign: -1.0 }
     ];
     
-    // JICA bug simulates using profile area instead of B * W for bearing capacity base area
     let z_min = c.xzCoords.length > 0 ? c.xzCoords[0].z : 0.0;
     c.xzCoords.forEach(pt => { if (pt.z < z_min) z_min = pt.z; });
-    const x_pipe_val = state.jicaAuditMode ? 3.000 : (c.pipeXZ && c.pipeXZ[1] ? c.pipeXZ[1].x : p.B / 2.0);
-    const h_CG_val = state.jicaAuditMode ? 2.500 : (z_CG - z_min);
-    const h_pipe_val = state.jicaAuditMode ? 3.000 : ((c.pipeXZ && c.pipeXZ[1] ? c.pipeXZ[1].z : p.H_ab / 2.0) - z_min);
     const A_base = state.jicaAuditMode ? A_profile : (p.B * p.W);
-    
-    cases_temp.forEach(c => {
-        const Tx = c.signF * F_vec.x + c.signF_prime * F_prime_vec.x;
-        const Ty = c.signF * F_vec.y + c.signF_prime * F_prime_vec.y;
-        const Tz = c.signF * F_vec.z + c.signF_prime * F_prime_vec.z;
-        
-        const Rx = P_vec.x + Tx;
-        const Ry = P_vec.y + Ty;
-        const Rz = P_vec.z + Tz;
-        
-        // Plane 1: X-Z (Flow direction)
+
+    loadCombos.forEach(c => {
+        const Rx = P_vec.x + c.fSign * F_vec.x + c.fPrimeSign * F_prime_vec.x;
+        const Ry = P_vec.y + c.fSign * F_vec.y + c.fPrimeSign * F_prime_vec.y;
+        const Rz = P_vec.z + c.fSign * F_vec.z + c.fPrimeSign * F_prime_vec.z;
+
+        const h_CG_val = state.jicaAuditMode ? 2.500 : (z_CG - z_min);
+        const h_pipe_val = state.jicaAuditMode ? 3.000 : ((state.coordinates.pipeXZ && state.coordinates.pipeXZ[1] ? state.coordinates.pipeXZ[1].z : p.H_ab / 2.0) - z_min);
+        const x_pipe = state.jicaAuditMode ? 3.000 : (state.coordinates.pipeXZ && state.coordinates.pipeXZ[1] ? state.coordinates.pipeXZ[1].x : p.B / 2.0);
+
         [-1.0, 1.0].forEach(eqSign => {
             const totalV = -WA + Rz;
-            const x_pipe = x_pipe_val;
             const momV = -WA * x_CG + Rz * x_pipe;
             
             const seismicTotal = eqSign * (F_WA + F_p);
             const totalH = seismicTotal + Rx;
             const momH = eqSign * F_WA * h_CG_val + eqSign * F_p * h_pipe_val + Rx * h_pipe_val;
             
-            // Mitigation calculations
-            const A_s = (Math.PI * Math.pow(p.d_anchor || 25, 2)) / 4.0; // mm2
+            const A_s = (Math.PI * Math.pow(p.d_anchor || 25, 2)) / 4.0;
             const T_allow = p.mitigation_active ? ((p.n_anchors || 0) * A_s * (p.fy_anchor || 415) * 1e-4 * 0.6) : 0.0;
             const V_allow_anchors = p.mitigation_active ? ((p.n_anchors || 0) * A_s * (p.fy_anchor || 415) * 1e-4 * 0.4) : 0.0;
             const R_key_val = p.mitigation_active ? (15.0 * (p.h_key || 0) * p.W) : 0.0;
             
-            const totalV_clamped = totalV - T_allow; // tension pulls down, acts in negative z direction
-            
-            // Anchor location for moment: opposite of sliding/overturning direction
+            const totalV_clamped = totalV - T_allow;
             const x_anchor = totalH >= 0 ? 1.0 : (p.B - 1.0);
             const momV_mitigation = p.mitigation_active ? (-T_allow * x_anchor) : 0.0;
             const momV_clamped = momV + momV_mitigation;
@@ -580,10 +571,9 @@ function calculateStability() {
             const e = Math.abs(B_x / 2.0 - x_res);
             
             const eqLabelVal = eqSign < 0 ? '-x EQ' : '+x EQ';
-            const limit_e = B_x / 4.0;
-            const eccentricityPass = e < limit_e;
+            const limit_e = state.jicaAuditMode ? (B_x / 6.0) : (B_x / 4.0);
+            const eccentricityPass = e <= limit_e;
             
-            // JICA Safety against sliding (seismic limit is 1.2) - Geotechnical parameters overridden under strict JICA Audit Mode
             const d_embed = Math.max(0.0, (state.coordinates.groundCoords[state.coordinates.groundCoords.length - 1].z - z_min));
             const phi_rad = rad(p.soil_friction_angle || 30.0);
             const K_p = (1.0 + Math.sin(phi_rad)) / (1.0 - Math.sin(phi_rad));
@@ -591,23 +581,21 @@ function calculateStability() {
             const R_cohesion = (p.buriedCondition && !state.jicaAuditMode) ? ((p.soil_cohesion || 1.5) * A_base) : 0.0;
             
             const Fs = (Math.abs(totalV_clamped) * p.lambda + R_key_val + V_allow_anchors + P_p + R_cohesion) / Math.abs(totalH);
-            const slidingPass = Fs >= 1.2;
+            const limit_Fs = state.jicaAuditMode ? 2.0 : 1.2;
+            const slidingPass = Fs >= limit_Fs;
             
-            // JICA Safety against overturning (resisting moment / overturning moment >= 1.2)
             let M_R = 0;
             let M_O = Math.abs(momH);
             let M_R_anchors = p.mitigation_active ? (T_allow * (B_x - 1.0)) : 0.0;
             if (totalH >= 0) {
-                // Rotation about downstream toe (x = B)
                 M_R = WA * (B_x - x_CG) - Rz * (B_x - x_pipe);
             } else {
-                // Rotation about upstream toe (x = 0)
                 M_R = WA * x_CG - Rz * x_pipe;
             }
             const Fot = M_O > 0.001 ? Math.abs((M_R + M_R_anchors) / M_O) : 999.0;
-            const overturningFSPass = Fot >= 1.2;
+            const overturningFSPass = Fot >= limit_Fs;
             
-            const allowedBearing = p.qa * (p.bearing_increase_factor || 1.50);
+            const allowedBearing = state.jicaAuditMode ? p.qa : (p.qa * (p.bearing_increase_factor || 1.50));
             
             let sigma_max = Math.abs(totalV_clamped / A_base) * (1.0 + 6.0 * e / B_x);
             let isLiftOff = false;
@@ -648,13 +636,10 @@ function calculateStability() {
                 P_p: P_p,
                 R_cohesion: R_cohesion,
                 passed: eccentricityPass && overturningFSPass && slidingPass && bearingPass,
-                
-                // detailed components for Step 4 reporting
-                momV: momV_clamped, momH, sumM, x_res, Rx, Ry, Rz, Tx, Ty, Tz
+                momV: momV_clamped, momH, sumM, x_res, Rx, Ry, Rz
             });
         });
-        
-        // Plane 2: Y-Z (Transverse direction)
+
         [-1.0, 1.0].forEach(eqSign => {
             const totalV = -WA + Rz;
             const y_pipe = p.B_yz / 2.0;
@@ -664,15 +649,12 @@ function calculateStability() {
             const totalH = seismicTotal + Ry;
             const momH = eqSign * F_WA * h_CG_val + eqSign * F_p * h_pipe_val + Ry * h_pipe_val;
             
-            // Mitigation calculations
-            const A_s = (Math.PI * Math.pow(p.d_anchor || 25, 2)) / 4.0; // mm2
+            const A_s = (Math.PI * Math.pow(p.d_anchor || 25, 2)) / 4.0;
             const T_allow = p.mitigation_active ? ((p.n_anchors || 0) * A_s * (p.fy_anchor || 415) * 1e-4 * 0.6) : 0.0;
             const V_allow_anchors = p.mitigation_active ? ((p.n_anchors || 0) * A_s * (p.fy_anchor || 415) * 1e-4 * 0.4) : 0.0;
             const R_key_val = p.mitigation_active ? (15.0 * (p.h_key || 0) * p.B) : 0.0;
             
-            const totalV_clamped = totalV - T_allow; // tension pulls down
-            
-            // Anchor location for moment in Y-Z
+            const totalV_clamped = totalV - T_allow;
             const y_anchor = totalH >= 0 ? 0.5 : (p.B_yz - 0.5);
             const momV_mitigation = p.mitigation_active ? (-T_allow * y_anchor) : 0.0;
             const momV_clamped = momV + momV_mitigation;
@@ -683,8 +665,8 @@ function calculateStability() {
             const e = Math.abs(B_y / 2.0 - y_res);
             
             const eqLabelVal = eqSign < 0 ? '-y EQ' : '+y EQ';
-            const limit_e = B_y / 4.0;
-            const eccentricityPass = e < limit_e;
+            const limit_e = state.jicaAuditMode ? (B_y / 6.0) : (B_y / 4.0);
+            const eccentricityPass = e <= limit_e;
             
             const d_embed = Math.max(0.0, (state.coordinates.groundCoords[state.coordinates.groundCoords.length - 1].z - z_min));
             const phi_rad = rad(p.soil_friction_angle || 30.0);
@@ -693,23 +675,21 @@ function calculateStability() {
             const R_cohesion = (p.buriedCondition && !state.jicaAuditMode) ? ((p.soil_cohesion || 1.5) * A_base) : 0.0;
             
             const Fs = (Math.abs(totalV_clamped) * p.lambda + R_key_val + V_allow_anchors + P_p + R_cohesion) / Math.abs(totalH);
-            const slidingPass = Fs >= 1.2;
+            const limit_Fs = state.jicaAuditMode ? 2.0 : 1.2;
+            const slidingPass = Fs >= limit_Fs;
             
-            // JICA Safety against overturning in Transverse direction
             let M_R = 0;
             let M_O = Math.abs(momH);
             let M_R_anchors = p.mitigation_active ? (T_allow * (B_y - 0.5)) : 0.0;
             if (totalH >= 0) {
-                // Rotation about right toe (y = B_yz)
                 M_R = WA * (B_y - y_CG_stability) - Rz * (B_y - y_pipe);
             } else {
-                // Rotation about left toe (y = 0)
                 M_R = WA * y_CG_stability - Rz * y_pipe;
             }
             const Fot = M_O > 0.001 ? Math.abs((M_R + M_R_anchors) / M_O) : 999.0;
-            const overturningFSPass = Fot >= 1.2;
+            const overturningFSPass = Fot >= limit_Fs;
             
-            const allowedBearing = p.qa * (p.bearing_increase_factor || 1.50);
+            const allowedBearing = state.jicaAuditMode ? p.qa : (p.qa * (p.bearing_increase_factor || 1.50));
             
             let sigma_max = Math.abs(totalV_clamped / A_base) * (1.0 + 6.0 * e / B_y);
             let isLiftOff = false;
@@ -745,18 +725,15 @@ function calculateStability() {
                 eccentricityPass,
                 overturningFSPass,
                 slidingPass,
-                bearingPass,
                 limit_qa: allowedBearing,
                 P_p: P_p,
                 R_cohesion: R_cohesion,
                 passed: eccentricityPass && overturningFSPass && slidingPass && bearingPass,
-                
-                momV: momV_clamped, momH, sumM, y_res, Rx, Ry, Rz, Tx, Ty, Tz
+                momV: momV_clamped, momH, sumM, y_res, Rx, Ry, Rz
             });
         });
     });
 }
-
 
 /**
  * Generates a high-contrast dynamic Free Body Diagram (FBD) as an SVG string.
