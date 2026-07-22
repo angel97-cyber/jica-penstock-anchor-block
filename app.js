@@ -1605,14 +1605,14 @@ function renderDetailedCalculationCard() {
                             <td><strong>Safety against Sliding (Fs)</strong></td>
                             <td>Fs = (|&Sigma;V|&middot;&lambda; + R_key + V_anchors${c.P_p > 0 ? ' + P_p' : ''}${c.R_cohesion > 0 ? ' + R_cohesion' : ''}) / |&Sigma;H|</td>
                             <td class="num">${c.Fs.toFixed(2)}</td>
-                            <td class="num">&ge; 1.2</td>
+                            <td class="num">&ge; ${state.jicaAuditMode ? '2.0' : '1.2'}</td>
                             <td style="color:${c.slidingPass ? 'var(--accent-green)':'var(--accent-red)'}; font-weight:bold;">${c.slidingPass ? 'PASS':'FAIL'}</td>
                         </tr>
                         <tr>
                             <td><strong>Safety against Overturning (Fo)</strong></td>
                             <td>Fo = &Sigma; M_R / &Sigma; M_O</td>
                             <td class="num">${c.Fot.toFixed(2)}</td>
-                            <td class="num">&ge; 1.2</td>
+                            <td class="num">&ge; ${state.jicaAuditMode ? '2.0' : '1.2'}</td>
                             <td style="color:${c.overturningFSPass ? 'var(--accent-green)':'var(--accent-red)'}; font-weight:bold;">${c.overturningFSPass ? 'PASS':'FAIL'}</td>
                         </tr>
                         <tr>
@@ -2481,7 +2481,7 @@ function renderCaseCombinationsTable() {
                 <td class="num">${fNum(c.totalH, 2)}</td>
                 <td class="num" style="color: ${c.eccentricityPass ? 'var(--text-secondary)' : 'var(--accent-red)'}">${fNum(c.e, 3)} <small style="color:var(--text-muted)">(&lt;${fNum(c.limit_e, 3)})</small></td>
                 <td class="num" style="color: ${c.slidingPass ? 'var(--text-secondary)' : 'var(--accent-red)'}">${fNum(c.Fs, 2)}</td>
-                <td class="num" style="color: ${c.bearingPass ? 'var(--text-secondary)' : 'var(--accent-red)'}">${fNum(c.sigma, 2)} <small style="color:var(--text-muted)">(&lt;${fNum(c.limit_qa, 1)})</small></td>
+                <td class="num" style="color: ${c.bearingPass ? 'var(--text-secondary)' : 'var(--accent-red)'}">${fNum(c.sigma, 2)} <small style="color:var(--text-muted)">(&lt;${fNum(c.limit_qa, 2)})</small></td>
                 <td>${statusBadge}</td>
             </tr>
         `;
@@ -2599,16 +2599,24 @@ function renderChecklists() {
         }
     });
     
-    const updateRow = (id, valText, pass, limitText) => {
+    const updateRow = (id, valText, pass, limitText, isLess = true) => {
         const row = document.getElementById(id);
         if (!row) return;
         const indicator = row.querySelector('.chk-indicator');
         const status = row.querySelector('.chk-status');
         const valPlaceholder = row.querySelector('.val');
         const limitPlaceholder = row.querySelector('.limit');
+        const opPlaceholder = row.querySelector('.op');
         
         if (valPlaceholder) valPlaceholder.innerText = valText;
         if (limitPlaceholder && limitText !== undefined) limitPlaceholder.innerText = limitText;
+        if (opPlaceholder) {
+            if (isLess) {
+                opPlaceholder.innerText = pass ? '<' : '>';
+            } else {
+                opPlaceholder.innerText = pass ? '≥' : '<';
+            }
+        }
         
         // Dynamically create or retrieve the manual recommendation info button
         let infoBtn = row.querySelector('.chk-info-btn');
@@ -2670,18 +2678,18 @@ function renderChecklists() {
     const limitFsVal = state.jicaAuditMode ? '2.0' : '1.2';
     const limitEXZ = fNum(xzCases[0] ? xzCases[0].limit_e : state.params.B / 4.0, 3) + 'm';
     const limitEYZ = fNum(yzCases[0] ? yzCases[0].limit_e : state.params.B_yz / 4.0, 3) + 'm';
-    const limitQaXZ = fNum(xzCases[0] ? xzCases[0].limit_qa : state.params.qa, 1) + ' t/m²';
-    const limitQaYZ = fNum(yzCases[0] ? yzCases[0].limit_qa : state.params.qa, 1) + ' t/m²';
+    const limitQaXZ = fNum(xzCases[0] ? xzCases[0].limit_qa : state.params.qa, 2) + ' t/m²';
+    const limitQaYZ = fNum(yzCases[0] ? yzCases[0].limit_qa : state.params.qa, 2) + ' t/m²';
 
-    updateRow('chk-xz-sliding', fNum(xz_minFs, 2), xzCases.every(c => c.slidingPass), limitFsVal);
-    updateRow('chk-xz-overturning-fs', fNum(xz_minFot, 2), xzCases.every(c => c.overturningFSPass), limitFsVal);
-    updateRow('chk-xz-eccentricity', fNum(xz_maxE, 3) + 'm', xzCases.every(c => c.eccentricityPass), limitEXZ);
-    updateRow('chk-xz-bearing', fNum(xz_maxSigma, 2) + ' t/m²', xzCases.every(c => c.bearingPass), limitQaXZ);
+    updateRow('chk-xz-sliding', fNum(xz_minFs, 2), xzCases.every(c => c.slidingPass), limitFsVal, false);
+    updateRow('chk-xz-overturning-fs', fNum(xz_minFot, 2), xzCases.every(c => c.overturningFSPass), limitFsVal, false);
+    updateRow('chk-xz-eccentricity', fNum(xz_maxE, 3) + 'm', xzCases.every(c => c.eccentricityPass), limitEXZ, true);
+    updateRow('chk-xz-bearing', fNum(xz_maxSigma, 2) + ' t/m²', xzCases.every(c => c.bearingPass), limitQaXZ, true);
     
-    updateRow('chk-yz-sliding', fNum(yz_minFs, 2), yzCases.every(c => c.slidingPass), limitFsVal);
-    updateRow('chk-yz-overturning-fs', fNum(yz_minFot, 2), yzCases.every(c => c.overturningFSPass), limitFsVal);
-    updateRow('chk-yz-eccentricity', fNum(yz_maxE, 3) + 'm', yzCases.every(c => c.eccentricityPass), limitEYZ);
-    updateRow('chk-yz-bearing', fNum(yz_maxSigma, 2) + ' t/m²', yzCases.every(c => c.bearingPass), limitQaYZ);
+    updateRow('chk-yz-sliding', fNum(yz_minFs, 2), yzCases.every(c => c.slidingPass), limitFsVal, false);
+    updateRow('chk-yz-overturning-fs', fNum(yz_minFot, 2), yzCases.every(c => c.overturningFSPass), limitFsVal, false);
+    updateRow('chk-yz-eccentricity', fNum(yz_maxE, 3) + 'm', yzCases.every(c => c.eccentricityPass), limitEYZ, true);
+    updateRow('chk-yz-bearing', fNum(yz_maxSigma, 2) + ' t/m²', yzCases.every(c => c.bearingPass), limitQaYZ, true);
 }
 
 function showRecommendationModal(checkId) {
