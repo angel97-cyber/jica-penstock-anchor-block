@@ -3511,7 +3511,7 @@ function generatePrintReportHtml() {
                 <td style="padding: 4px; border: 1px solid #cbd5e1; color: #000000;">${cs.combination}</td>
                 <td style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; color: #000000;">${fNum(cs.totalV, 2)}</td>
                 <td style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; color: #000000;">${fNum(cs.totalH, 2)}</td>
-                <td style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; color: #000000;">${fNum(cs.e, 3)} / ${fNum(cs.limit_e, 3)}</td>
+                <td style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; color:${cs.eccentricityPass ? '#15803d':'#b91c1c'}; font-weight:bold; background-color:${cs.eccentricityPass ? '#f0fdf4':'#fef2f2'};">${fNum(cs.e, 3)} / ${fNum(cs.limit_e, 3)}</td>
                 <td style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; color:${cs.slidingPass ? '#15803d':'#b91c1c'}; font-weight:bold; background-color:${cs.slidingPass ? '#f0fdf4':'#fef2f2'};">${fNum(cs.Fs, 2)}</td>
                 <td style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; color:${cs.overturningFSPass ? '#15803d':'#b91c1c'}; font-weight:bold; background-color:${cs.overturningFSPass ? '#f0fdf4':'#fef2f2'};">${fNum(cs.Fot, 2)}</td>
                 <td style="padding: 4px; border: 1px solid #cbd5e1; text-align: right; color:${cs.bearingPass ? '#15803d':'#b91c1c'}; font-weight:bold; background-color:${cs.bearingPass ? '#f0fdf4':'#fef2f2'};">${fNum(cs.sigma, 2)} / ${fNum(cs.limit_qa, 1)}</td>
