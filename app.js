@@ -3797,8 +3797,8 @@ function generatePrintReportHtml() {
                     <div style="border: 1px solid #cbd5e1; border-radius: 4px; padding: 8px 10px; background-color: #f8fafc;">
                         <div style="font-weight: bold; font-size: 10px; color: #0f172a; margin-bottom: 4px;">(iv) Centrifugal Forces Pv & Ph</div>
                         <div style="font-size: 9px; color: #334155; line-height: 1.5; font-family: 'Consolas', 'Courier New', monospace;">
-                            <div><strong>Formula:</strong> Pv = 2 &middot; (v&sup2;/g) &middot; A &middot; sin(&phi;/2) &middot; &gamma;w &nbsp;|&nbsp; Ph = 2 &middot; (v&sup2;/g) &middot; A &middot; sin(&theta;/2) &middot; &gamma;w</div>
-                            <div><strong>Substitution:</strong> Pv = 2 &times; (${v_water.toFixed(3)}&sup2;/9.80665) &times; ${A_pipe.toFixed(3)} &times; sin(${deg(Math.abs(phi_val)/2.0).toFixed(2)}&deg;) &times; 1.0 = <strong>${Pv_val.toFixed(3)} ton</strong></div>
+                            <div><strong>Formula:</strong> Pv = 2 &middot; (v&sup2;/g) &middot; A &middot; sin(|&phi;|/2) &middot; &gamma;w &nbsp;|&nbsp; Ph = 2 &middot; (v&sup2;/g) &middot; A &middot; sin(&theta;/2) &middot; &gamma;w</div>
+                            <div><strong>Substitution:</strong> Pv = 2 &times; (${v_water.toFixed(3)}&sup2;/9.80665) &times; ${A_pipe.toFixed(3)} &times; sin(|${deg(phi_val).toFixed(2)}&deg;|/2 = ${deg(Math.abs(phi_val)/2.0).toFixed(2)}&deg;) &times; 1.0 = <strong>${Pv_val.toFixed(3)} ton</strong></div>
                             <div><strong>Substitution:</strong> Ph = 2 &times; (${v_water.toFixed(3)}&sup2;/9.80665) &times; ${A_pipe.toFixed(3)} &times; sin(${p.theta.toFixed(2)}&deg;/2) &times; 1.0 = <strong>${Ph_val.toFixed(3)} ton</strong></div>
                             <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #cbd5e1; color: #1e293b;">
                                 <strong>3D Components:</strong><br>
@@ -3826,8 +3826,8 @@ function generatePrintReportHtml() {
                     <div style="border: 1px solid #cbd5e1; border-radius: 4px; padding: 8px 10px; background-color: #f8fafc;">
                         <div style="font-weight: bold; font-size: 10px; color: #0f172a; margin-bottom: 4px;">(vi) Unbalanced Internal Pressure at Bends Prv & Prh</div>
                         <div style="font-size: 9px; color: #334155; line-height: 1.5; font-family: 'Consolas', 'Courier New', monospace;">
-                            <div><strong>Formula:</strong> Prv = 2 &middot; H &middot; A &middot; sin(&phi;/2) &middot; &gamma;w &nbsp;|&nbsp; Prh = 2 &middot; H &middot; A &middot; sin(&theta;/2) &middot; &gamma;w</div>
-                            <div><strong>Substitution:</strong> Prv = 2 &times; ${p.H.toFixed(1)} &times; ${A_pipe.toFixed(3)} &times; sin(${deg(Math.abs(phi_val)/2.0).toFixed(2)}&deg;) &times; 1.0 = <strong>${Prv_val.toFixed(3)} ton</strong></div>
+                            <div><strong>Formula:</strong> Prv = 2 &middot; H &middot; A &middot; sin(|&phi;|/2) &middot; &gamma;w &nbsp;|&nbsp; Prh = 2 &middot; H &middot; A &middot; sin(&theta;/2) &middot; &gamma;w</div>
+                            <div><strong>Substitution:</strong> Prv = 2 &times; ${p.H.toFixed(1)} &times; ${A_pipe.toFixed(3)} &times; sin(|${deg(phi_val).toFixed(2)}&deg;|/2 = ${deg(Math.abs(phi_val)/2.0).toFixed(2)}&deg;) &times; 1.0 = <strong>${Prv_val.toFixed(3)} ton</strong></div>
                             <div><strong>Substitution:</strong> Prh = 2 &times; ${p.H.toFixed(1)} &times; ${A_pipe.toFixed(3)} &times; sin(${p.theta.toFixed(2)}&deg;/2) &times; 1.0 = <strong>${Prh_val.toFixed(3)} ton</strong></div>
                             <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #cbd5e1; color: #1e293b;">
                                 <strong>3D Components:</strong><br>
