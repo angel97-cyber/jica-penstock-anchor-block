@@ -454,9 +454,10 @@ function calculateStability() {
     const P1_val = s * p.L * Math.sin(delta_val);
     const P1_prime_val = s_prime * p.L_prime * Math.sin(delta_prime_val);
     
-    const P1_vec = { x: P1_val * Math.cos(delta_val), y: 0.0, z: -P1_val * Math.sin(delta_val) };
+    // Rule 1: Fx = -P1*cos(delta) | Rule 2: Fx = -P1'*cos(delta')*cos(theta)
+    const P1_vec = { x: -P1_val * Math.cos(delta_val), y: 0.0, z: -P1_val * Math.sin(delta_val) };
     const P1_prime_vec = {
-        x: P1_prime_val * Math.cos(delta_prime_val) * Math.cos(theta_val),
+        x: -P1_prime_val * Math.cos(delta_prime_val) * Math.cos(theta_val),
         y: -P1_prime_val * Math.cos(delta_prime_val) * Math.sin(theta_val),
         z: -P1_prime_val * Math.sin(delta_prime_val)
     };
@@ -465,33 +466,38 @@ function calculateStability() {
     const P2_val = (2 * p.f * (p.Q ** 2) / (g * Math.PI * (p.D ** 3))) * p.L * gamma_w;
     const P2_prime_val = (2 * p.f * (p.Q ** 2) / (g * Math.PI * (p.D ** 3))) * p.L_prime * gamma_w;
     
-    const P2_vec = { x: P2_val * Math.cos(delta_val), y: 0.0, z: -P2_val * Math.sin(delta_val) };
+    // Rule 3: Upstream P2: Fz = P2*sin(delta)
+    const P2_vec = { x: P2_val * Math.cos(delta_val), y: 0.0, z: P2_val * Math.sin(delta_val) };
     const P2_prime_vec = {
         x: P2_prime_val * Math.cos(delta_prime_val) * Math.cos(theta_val),
         y: -P2_prime_val * Math.cos(delta_prime_val) * Math.sin(theta_val),
         z: -P2_prime_val * Math.sin(delta_prime_val)
     };
     
-    const Pv_val = 2 * (v_water ** 2) / g * A_pipe * Math.sin(Math.abs(phi_val) / 2.0) * gamma_w;
+    // Rule 4: Pv = 2 * (v^2/g) * A * sin(phi/2) without abs
+    const Pv_val = 2 * (v_water ** 2) / g * A_pipe * Math.sin(phi_val / 2.0) * gamma_w;
     const Ph_val = 2 * (v_water ** 2) / g * A_pipe * Math.sin(theta_val / 2.0) * gamma_w;
     
-    const Pv_vec = { x: Pv_val * Math.sin(Math.abs(phi_val) / 2.0), y: 0.0, z: Pv_val * Math.cos(Math.abs(phi_val) / 2.0) };
+    const Pv_vec = { x: Pv_val * Math.sin(phi_val / 2.0), y: 0.0, z: Pv_val * Math.cos(phi_val / 2.0) };
     const Ph_vec = { x: Ph_val * Math.sin(theta_val / 2.0), y: Ph_val * Math.cos(theta_val / 2.0), z: 0.0 };
     
     const P3_val = p.He * Math.PI * p.D * p.t * gamma_w;
     const P3_prime_val = p.He_prime * Math.PI * p.D * p.t_prime * gamma_w;
     
-    const P3_vec = { x: P3_val * Math.cos(delta_val), y: 0.0, z: -P3_val * Math.sin(delta_val) };
+    // Rule 5: Upstream P3: Fz = P3*sin(delta)
+    const P3_vec = { x: P3_val * Math.cos(delta_val), y: 0.0, z: P3_val * Math.sin(delta_val) };
     const P3_prime_vec = {
         x: -P3_prime_val * Math.cos(delta_prime_val) * Math.cos(theta_val),
         y: P3_prime_val * Math.cos(delta_prime_val) * Math.sin(theta_val),
         z: P3_prime_val * Math.sin(delta_prime_val)
     };
     
-    const Prv_val = 2 * p.H * A_pipe * Math.sin(Math.abs(phi_val) / 2.0) * gamma_w;
+    // Rule 6: Prv = 2 * H * A * sin(phi/2) without abs
+    const Prv_val = 2 * p.H * A_pipe * Math.sin(phi_val / 2.0) * gamma_w;
     const Prh_val = 2 * p.H * A_pipe * Math.sin(theta_val / 2.0) * gamma_w;
     
-    const Prv_vec = { x: Prv_val * Math.sin(Math.abs(phi_val) / 2.0), y: 0.0, z: Prv_val * Math.cos(Math.abs(phi_val) / 2.0) };
+    // Rule 7: Vertical Prv: Fx = -Prv*sin(phi/2)
+    const Prv_vec = { x: -Prv_val * Math.sin(phi_val / 2.0), y: 0.0, z: Prv_val * Math.cos(phi_val / 2.0) };
     const Prh_vec = { x: Prh_val * Math.sin(theta_val / 2.0), y: Prh_val * Math.cos(theta_val / 2.0), z: 0.0 };
     
     const P_vec = {
@@ -508,10 +514,11 @@ function calculateStability() {
     const F_prime = F1_prime + F2_prime;
     
     const F_vec = { x: F_total * Math.cos(delta_val), y: 0.0, z: -F_total * Math.sin(delta_val) };
+    // Rule 8: Downstream F': Fz = F'*sin(delta')
     const F_prime_vec = {
         x: F_prime * Math.cos(delta_prime_val) * Math.cos(theta_val),
         y: -F_prime * Math.cos(delta_prime_val) * Math.sin(theta_val),
-        z: -F_prime * Math.sin(delta_prime_val)
+        z: F_prime * Math.sin(delta_prime_val)
     };
     
     const F_WA = p.Kh * WA;
@@ -3772,8 +3779,8 @@ function generatePrintReportHtml() {
                             <div><strong>Substitution:</strong> P1 = ${s.toFixed(3)} &times; ${p.L.toFixed(3)} &times; sin(${deg(delta_val).toFixed(2)}&deg;) = <strong>${mag_P1.toFixed(3)} ton</strong> &nbsp;|&nbsp; P1' = ${s_prime.toFixed(3)} &times; ${p.L_prime.toFixed(3)} &times; sin(${deg(delta_prime_val).toFixed(2)}&deg;) = <strong>${mag_P1_prime.toFixed(3)} ton</strong></div>
                             <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #cbd5e1; color: #1e293b;">
                                 <strong>3D Components:</strong><br>
-                                Upstream P1: Fx = P1&middot;cos(&delta;) = <strong>${f.P1.x.toFixed(3)} ton</strong> | Fy = <strong>0.000 ton</strong> | Fz = -P1&middot;sin(&delta;) = <strong>${f.P1.z.toFixed(3)} ton</strong><br>
-                                Downstream P1': Fx = P1'&middot;cos(&delta;')&middot;cos(&theta;) = <strong>${f.P1_prime.x.toFixed(3)} ton</strong> | Fy = -P1'&middot;cos(&delta;')&middot;sin(&theta;) = <strong>${f.P1_prime.y.toFixed(3)} ton</strong> | Fz = -P1'&middot;sin(&delta;') = <strong>${f.P1_prime.z.toFixed(3)} ton</strong>
+                                Upstream P1: Fx = -P1&middot;cos(&delta;) = <strong>${f.P1.x.toFixed(3)} ton</strong> | Fy = <strong>0.000 ton</strong> | Fz = -P1&middot;sin(&delta;) = <strong>${f.P1.z.toFixed(3)} ton</strong><br>
+                                Downstream P1': Fx = -P1'&middot;cos(&delta;')&middot;cos(&theta;) = <strong>${f.P1_prime.x.toFixed(3)} ton</strong> | Fy = -P1'&middot;cos(&delta;')&middot;sin(&theta;) = <strong>${f.P1_prime.y.toFixed(3)} ton</strong> | Fz = -P1'&middot;sin(&delta;') = <strong>${f.P1_prime.z.toFixed(3)} ton</strong>
                             </div>
                         </div>
                     </div>
@@ -3787,7 +3794,7 @@ function generatePrintReportHtml() {
                             <div><strong>Substitution:</strong> P2' = [2 &times; ${p.f.toFixed(2)} &times; ${p.Q.toFixed(3)}&sup2; / (9.80665 &times; &pi; &times; ${p.D.toFixed(3)}&sup3;)] &times; ${p.L_prime.toFixed(3)} = <strong>${mag_P2_prime.toFixed(3)} ton</strong></div>
                             <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #cbd5e1; color: #1e293b;">
                                 <strong>3D Components:</strong><br>
-                                Upstream P2: Fx = P2&middot;cos(&delta;) = <strong>${f.P2.x.toFixed(3)} ton</strong> | Fy = <strong>0.000 ton</strong> | Fz = -P2&middot;sin(&delta;) = <strong>${f.P2.z.toFixed(3)} ton</strong><br>
+                                Upstream P2: Fx = P2&middot;cos(&delta;) = <strong>${f.P2.x.toFixed(3)} ton</strong> | Fy = <strong>0.000 ton</strong> | Fz = P2&middot;sin(&delta;) = <strong>${f.P2.z.toFixed(3)} ton</strong><br>
                                 Downstream P2': Fx = P2'&middot;cos(&delta;')&middot;cos(&theta;) = <strong>${f.P2_prime.x.toFixed(3)} ton</strong> | Fy = -P2'&middot;cos(&delta;')&middot;sin(&theta;) = <strong>${f.P2_prime.y.toFixed(3)} ton</strong> | Fz = -P2'&middot;sin(&delta;') = <strong>${f.P2_prime.z.toFixed(3)} ton</strong>
                             </div>
                         </div>
@@ -3816,8 +3823,8 @@ function generatePrintReportHtml() {
                             <div><strong>Substitution:</strong> P3 = ${p.He.toFixed(1)} &times; &pi; &times; ${p.D.toFixed(3)} &times; ${p.t.toFixed(4)} = <strong>${mag_P3.toFixed(3)} ton</strong> &nbsp;|&nbsp; P3' = ${p.He_prime.toFixed(1)} &times; &pi; &times; ${p.D.toFixed(3)} &times; ${p.t_prime.toFixed(4)} = <strong>${mag_P3_prime.toFixed(3)} ton</strong></div>
                             <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #cbd5e1; color: #1e293b;">
                                 <strong>3D Components:</strong><br>
-                                Upstream P3: Fx = P3&middot;cos(&delta;) = <strong>${f.P3.x.toFixed(3)} ton</strong> | Fy = <strong>0.000 ton</strong> | Fz = -P3&middot;sin(&delta;) = <strong>${f.P3.z.toFixed(3)} ton</strong><br>
-                                Downstream P3': Fx = P3'&middot;cos(&delta;')&middot;cos(&theta;) = <strong>${f.P3_prime.x.toFixed(3)} ton</strong> | Fy = -P3'&middot;cos(&delta;')&middot;sin(&theta;) = <strong>${f.P3_prime.y.toFixed(3)} ton</strong> | Fz = -P3'&middot;sin(&delta;') = <strong>${f.P3_prime.z.toFixed(3)} ton</strong>
+                                Upstream P3: Fx = P3&middot;cos(&delta;) = <strong>${f.P3.x.toFixed(3)} ton</strong> | Fy = <strong>0.000 ton</strong> | Fz = P3&middot;sin(&delta;) = <strong>${f.P3.z.toFixed(3)} ton</strong><br>
+                                Downstream P3': Fx = P3'&middot;cos(&delta;')&middot;cos(&theta;) = <strong>${f.P3_prime.x.toFixed(3)} ton</strong> | Fy = -P3'&middot;cos(&delta;')&middot;sin(&theta;) = <strong>${f.P3_prime.y.toFixed(3)} ton</strong> | Fz = P3'&middot;sin(&delta;') = <strong>${f.P3_prime.z.toFixed(3)} ton</strong>
                             </div>
                         </div>
                     </div>
@@ -3831,7 +3838,7 @@ function generatePrintReportHtml() {
                             <div><strong>Substitution:</strong> Prh = 2 &times; ${p.H.toFixed(1)} &times; ${A_pipe.toFixed(3)} &times; sin(${p.theta.toFixed(2)}&deg;/2) = <strong>${Prh_val.toFixed(3)} ton</strong></div>
                             <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #cbd5e1; color: #1e293b;">
                                 <strong>3D Components:</strong><br>
-                                Vertical Prv: Fx = Prv&middot;sin(&phi;/2) = <strong>${f.Prv.x.toFixed(3)} ton</strong> | Fy = <strong>0.000 ton</strong> | Fz = Prv&middot;cos(&phi;/2) = <strong>${f.Prv.z.toFixed(3)} ton</strong><br>
+                                Vertical Prv: Fx = -Prv&middot;sin(&phi;/2) = <strong>${f.Prv.x.toFixed(3)} ton</strong> | Fy = <strong>0.000 ton</strong> | Fz = Prv&middot;cos(&phi;/2) = <strong>${f.Prv.z.toFixed(3)} ton</strong><br>
                                 Horizontal Prh: Fx = Prh&middot;sin(&theta;/2) = <strong>${f.Prh.x.toFixed(3)} ton</strong> | Fy = Prh&middot;cos(&theta;/2) = <strong>${f.Prh.y.toFixed(3)} ton</strong> | Fz = <strong>0.000 ton</strong>
                             </div>
                         </div>
@@ -3848,7 +3855,10 @@ function generatePrintReportHtml() {
                             <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #cbd5e1; color: #1e293b;">
                                 <strong>3D Components:</strong><br>
                                 Upstream F: Fx = F&middot;cos(&delta;) = <strong>${f.F.x.toFixed(3)} ton</strong> | Fy = <strong>0.000 ton</strong> | Fz = -F&middot;sin(&delta;) = <strong>${f.F.z.toFixed(3)} ton</strong><br>
-                                Downstream F': Fx = F'&middot;cos(&delta;')&middot;cos(&theta;) = <strong>${f.F_prime.x.toFixed(3)} ton</strong> | Fy = -F'&middot;cos(&delta;')&middot;sin(&theta;) = <strong>${f.F_prime.y.toFixed(3)} ton</strong> | Fz = -F'&middot;sin(&delta;') = <strong>${f.F_prime.z.toFixed(3)} ton</strong>
+                                Downstream F': Fx = F'&middot;cos(&delta;')&middot;cos(&theta;) = <strong>${f.F_prime.x.toFixed(3)} ton</strong> | Fy = -F'&middot;cos(&delta;')&middot;sin(&theta;) = <strong>${f.F_prime.z.toFixed(3)} ton</strong> | Fz = F'&middot;sin(&delta;') = <strong>${f.F_prime.z.toFixed(3)} ton</strong>
+                            </div>
+                        </div>
+                    </div>ng>${f.F_prime.y.toFixed(3)} ton</strong> | Fz = -F'&middot;sin(&delta;') = <strong>${f.F_prime.z.toFixed(3)} ton</strong>
                             </div>
                         </div>
                     </div>
