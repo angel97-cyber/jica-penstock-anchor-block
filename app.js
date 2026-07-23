@@ -3797,9 +3797,9 @@ function generatePrintReportHtml() {
                     <div style="border: 1px solid #cbd5e1; border-radius: 4px; padding: 8px 10px; background-color: #f8fafc;">
                         <div style="font-weight: bold; font-size: 10px; color: #0f172a; margin-bottom: 4px;">(iv) Centrifugal Forces Pv & Ph</div>
                         <div style="font-size: 9px; color: #334155; line-height: 1.5; font-family: 'Consolas', 'Courier New', monospace;">
-                            <div><strong>Formula:</strong> Pv = 2 &middot; (v&sup2;/g) &middot; A &middot; sin(|&phi;|/2) &middot; &gamma;w &nbsp;|&nbsp; Ph = 2 &middot; (v&sup2;/g) &middot; A &middot; sin(&theta;/2) &middot; &gamma;w</div>
-                            <div><strong>Substitution:</strong> Pv = 2 &times; (${v_water.toFixed(3)}&sup2;/9.80665) &times; ${A_pipe.toFixed(3)} &times; sin(|${deg(phi_val).toFixed(2)}&deg;|/2 = ${deg(Math.abs(phi_val)/2.0).toFixed(2)}&deg;) &times; 1.0 = <strong>${Pv_val.toFixed(3)} ton</strong></div>
-                            <div><strong>Substitution:</strong> Ph = 2 &times; (${v_water.toFixed(3)}&sup2;/9.80665) &times; ${A_pipe.toFixed(3)} &times; sin(${p.theta.toFixed(2)}&deg;/2) &times; 1.0 = <strong>${Ph_val.toFixed(3)} ton</strong></div>
+                            <div><strong>Formula:</strong> Pv = 2 &middot; (v&sup2;/g) &middot; A &middot; sin(&phi;/2) &nbsp;|&nbsp; Ph = 2 &middot; (v&sup2;/g) &middot; A &middot; sin(&theta;/2)</div>
+                            <div><strong>Substitution:</strong> Pv = 2 &times; (${v_water.toFixed(3)}&sup2;/9.80665) &times; ${A_pipe.toFixed(3)} &times; sin(${deg(phi_val/2.0).toFixed(2)}&deg;) = <strong>${Pv_val.toFixed(3)} ton</strong></div>
+                            <div><strong>Substitution:</strong> Ph = 2 &times; (${v_water.toFixed(3)}&sup2;/9.80665) &times; ${A_pipe.toFixed(3)} &times; sin(${p.theta.toFixed(2)}&deg;/2) = <strong>${Ph_val.toFixed(3)} ton</strong></div>
                             <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #cbd5e1; color: #1e293b;">
                                 <strong>3D Components:</strong><br>
                                 Vertical Pv: Fx = Pv&middot;sin(&phi;/2) = <strong>${f.Pv.x.toFixed(3)} ton</strong> | Fy = <strong>0.000 ton</strong> | Fz = Pv&middot;cos(&phi;/2) = <strong>${f.Pv.z.toFixed(3)} ton</strong><br>
@@ -3812,8 +3812,8 @@ function generatePrintReportHtml() {
                     <div style="border: 1px solid #cbd5e1; border-radius: 4px; padding: 8px 10px; background-color: #f8fafc;">
                         <div style="font-weight: bold; font-size: 10px; color: #0f172a; margin-bottom: 4px;">(v) Expansion Joint Hydrostatic Pressure P3 & P3'</div>
                         <div style="font-size: 9px; color: #334155; line-height: 1.5; font-family: 'Consolas', 'Courier New', monospace;">
-                            <div><strong>Formula:</strong> P3 = He &middot; &pi; &middot; D &middot; t &middot; &gamma;w &nbsp;|&nbsp; P3' = He' &middot; &pi; &middot; D &middot; t' &middot; &gamma;w</div>
-                            <div><strong>Substitution:</strong> P3 = ${p.He.toFixed(1)} &times; &pi; &times; ${p.D.toFixed(3)} &times; ${p.t.toFixed(4)} &times; 1.0 = <strong>${mag_P3.toFixed(3)} ton</strong> &nbsp;|&nbsp; P3' = ${p.He_prime.toFixed(1)} &times; &pi; &times; ${p.D.toFixed(3)} &times; ${p.t_prime.toFixed(4)} &times; 1.0 = <strong>${mag_P3_prime.toFixed(3)} ton</strong></div>
+                            <div><strong>Formula:</strong> P3 = He &middot; &pi; &middot; D &middot; t &nbsp;|&nbsp; P3' = He' &middot; &pi; &middot; D &middot; t'</div>
+                            <div><strong>Substitution:</strong> P3 = ${p.He.toFixed(1)} &times; &pi; &times; ${p.D.toFixed(3)} &times; ${p.t.toFixed(4)} = <strong>${mag_P3.toFixed(3)} ton</strong> &nbsp;|&nbsp; P3' = ${p.He_prime.toFixed(1)} &times; &pi; &times; ${p.D.toFixed(3)} &times; ${p.t_prime.toFixed(4)} = <strong>${mag_P3_prime.toFixed(3)} ton</strong></div>
                             <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #cbd5e1; color: #1e293b;">
                                 <strong>3D Components:</strong><br>
                                 Upstream P3: Fx = P3&middot;cos(&delta;) = <strong>${f.P3.x.toFixed(3)} ton</strong> | Fy = <strong>0.000 ton</strong> | Fz = -P3&middot;sin(&delta;) = <strong>${f.P3.z.toFixed(3)} ton</strong><br>
@@ -3826,9 +3826,9 @@ function generatePrintReportHtml() {
                     <div style="border: 1px solid #cbd5e1; border-radius: 4px; padding: 8px 10px; background-color: #f8fafc;">
                         <div style="font-weight: bold; font-size: 10px; color: #0f172a; margin-bottom: 4px;">(vi) Unbalanced Internal Pressure at Bends Prv & Prh</div>
                         <div style="font-size: 9px; color: #334155; line-height: 1.5; font-family: 'Consolas', 'Courier New', monospace;">
-                            <div><strong>Formula:</strong> Prv = 2 &middot; H &middot; A &middot; sin(|&phi;|/2) &middot; &gamma;w &nbsp;|&nbsp; Prh = 2 &middot; H &middot; A &middot; sin(&theta;/2) &middot; &gamma;w</div>
-                            <div><strong>Substitution:</strong> Prv = 2 &times; ${p.H.toFixed(1)} &times; ${A_pipe.toFixed(3)} &times; sin(|${deg(phi_val).toFixed(2)}&deg;|/2 = ${deg(Math.abs(phi_val)/2.0).toFixed(2)}&deg;) &times; 1.0 = <strong>${Prv_val.toFixed(3)} ton</strong></div>
-                            <div><strong>Substitution:</strong> Prh = 2 &times; ${p.H.toFixed(1)} &times; ${A_pipe.toFixed(3)} &times; sin(${p.theta.toFixed(2)}&deg;/2) &times; 1.0 = <strong>${Prh_val.toFixed(3)} ton</strong></div>
+                            <div><strong>Formula:</strong> Prv = 2 &middot; H &middot; A &middot; sin(&phi;/2) &nbsp;|&nbsp; Prh = 2 &middot; H &middot; A &middot; sin(&theta;/2)</div>
+                            <div><strong>Substitution:</strong> Prv = 2 &times; ${p.H.toFixed(1)} &times; ${A_pipe.toFixed(3)} &times; sin(${deg(phi_val/2.0).toFixed(2)}&deg;) = <strong>${Prv_val.toFixed(3)} ton</strong></div>
+                            <div><strong>Substitution:</strong> Prh = 2 &times; ${p.H.toFixed(1)} &times; ${A_pipe.toFixed(3)} &times; sin(${p.theta.toFixed(2)}&deg;/2) = <strong>${Prh_val.toFixed(3)} ton</strong></div>
                             <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #cbd5e1; color: #1e293b;">
                                 <strong>3D Components:</strong><br>
                                 Vertical Prv: Fx = Prv&middot;sin(&phi;/2) = <strong>${f.Prv.x.toFixed(3)} ton</strong> | Fy = <strong>0.000 ton</strong> | Fz = Prv&middot;cos(&phi;/2) = <strong>${f.Prv.z.toFixed(3)} ton</strong><br>
