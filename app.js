@@ -1373,7 +1373,7 @@ function renderDetailedCalculationCard() {
                     <p>Frictional drag shear force of the water flow acting along the internal pipe wall (upstream segment).</p>
                     <div class="report-equation">
                         Inside Diameter D = ${p.D.toFixed(3)} m<br>
-                        Discharge Q = ${p.Q.toFixed(2)} m³/s<br>
+                        Discharge Q = ${p.Q.toFixed(3)} m³/s<br>
                         Friction coefficient f = ${p.f.toFixed(4)}<br>
                         Pipe length L = ${p.L.toFixed(3)} m<br>
                         g = 9.807 m/s²<br>
@@ -1394,7 +1394,7 @@ function renderDetailedCalculationCard() {
                     <p>Frictional drag shear force of the water flow acting along the internal pipe wall (downstream segment).</p>
                     <div class="report-equation">
                         Inside Diameter D = ${p.D.toFixed(3)} m<br>
-                        Discharge Q = ${p.Q.toFixed(2)} m³/s<br>
+                        Discharge Q = ${p.Q.toFixed(3)} m³/s<br>
                         Friction coefficient f = ${p.f.toFixed(4)}<br>
                         Pipe length L' = ${p.L_prime.toFixed(3)} m<br>
                         P2'_mag = (2 × f × Q² / (g × π × D³)) × L' = <strong>${P2_prime_val.toFixed(3)} ton</strong>
@@ -3718,7 +3718,7 @@ function generatePrintReportHtml() {
                         </tr>
                         <tr>
                             <td style="padding: 4px 6px; border: 1px solid #cbd5e1;"><strong>Q</strong> : maximum discharge</td>
-                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1;">${p.Q.toFixed(2)} m&sup3;/s</td>
+                            <td style="padding: 4px 6px; border: 1px solid #cbd5e1;">${p.Q.toFixed(3)} m&sup3;/s</td>
                             <td style="padding: 4px 6px; border: 1px solid #cbd5e1;"><strong>s / s'</strong> : pipe shell weight per meter</td>
                             <td style="padding: 4px 6px; border: 1px solid #cbd5e1;">${s.toFixed(3)} / ${s_prime.toFixed(3)} t/m</td>
                         </tr>
@@ -3736,6 +3736,16 @@ function generatePrintReportHtml() {
                         </tr>
                     </tbody>
                 </table>
+
+                <div style="border: 1px solid #cbd5e1; border-radius: 4px; padding: 8px 10px; background-color: #f1f5f9; margin-bottom: 15px;">
+                    <div style="font-weight: bold; font-size: 10px; color: #0f172a; margin-bottom: 4px;">Detailed Derivation Calculations for A, w, s, and s':</div>
+                    <div style="font-size: 9px; color: #334155; line-height: 1.5; font-family: 'Consolas', 'Courier New', monospace; display: flex; flex-direction: column; gap: 3px;">
+                        <div><strong>(1) Pipe Inside Area A:</strong> Formula: A = &pi;&middot;D&sup2;/4 &rarr; Subst: A = &pi; &times; (${p.D.toFixed(3)})&sup2; / 4 = <strong>${A_pipe.toFixed(3)} m&sup2;</strong></div>
+                        <div><strong>(2) Contained Water Weight w:</strong> Formula: w = A&middot;&gamma;w &rarr; Subst: w = ${A_pipe.toFixed(3)} &times; 1.0 = <strong>${w.toFixed(3)} t/m</strong></div>
+                        <div><strong>(3) Upstream Pipe Shell Weight s:</strong> Formula: s = &pi;&middot;D&middot;t&middot;&gamma;s &rarr; Subst: s = &pi; &times; ${p.D.toFixed(3)} &times; ${p.t.toFixed(4)} &times; ${p.rs.toFixed(2)} = <strong>${s.toFixed(3)} t/m</strong></div>
+                        <div><strong>(4) Downstream Pipe Shell Weight s':</strong> Formula: s' = &pi;&middot;D&middot;t'&middot;&gamma;s &rarr; Subst: s' = &pi; &times; ${p.D.toFixed(3)} &times; ${p.t_prime.toFixed(4)} &times; ${p.rs.toFixed(2)} = <strong>${s_prime.toFixed(3)} t/m</strong></div>
+                    </div>
+                </div>
 
                 <h3 style="font-size: 12px; font-weight: 700; color: #1e293b; margin: 12px 0 8px 0;">(B) Acting Force Detailed Step-by-Step Calculations & 3D Resolutions</h3>
                 <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
@@ -3773,8 +3783,8 @@ function generatePrintReportHtml() {
                         <div style="font-weight: bold; font-size: 10px; color: #0f172a; margin-bottom: 4px;">(iii) Hydrodynamic Friction P2 & P2'</div>
                         <div style="font-size: 9px; color: #334155; line-height: 1.5; font-family: 'Consolas', 'Courier New', monospace;">
                             <div><strong>Formula:</strong> P2 = [2 &middot; f &middot; Q&sup2; / (g &middot; &pi; &middot; D&sup3;)] &middot; L &nbsp;|&nbsp; P2' = [2 &middot; f &middot; Q&sup2; / (g &middot; &pi; &middot; D&sup3;)] &middot; L'</div>
-                            <div><strong>Substitution:</strong> P2 = [2 &times; ${p.f.toFixed(2)} &times; ${p.Q.toFixed(2)}&sup2; / (9.80665 &times; &pi; &times; ${p.D.toFixed(3)}&sup3;)] &times; ${p.L.toFixed(3)} = <strong>${mag_P2.toFixed(3)} ton</strong></div>
-                            <div><strong>Substitution:</strong> P2' = [2 &times; ${p.f.toFixed(2)} &times; ${p.Q.toFixed(2)}&sup2; / (9.80665 &times; &pi; &times; ${p.D.toFixed(3)}&sup3;)] &times; ${p.L_prime.toFixed(3)} = <strong>${mag_P2_prime.toFixed(3)} ton</strong></div>
+                            <div><strong>Substitution:</strong> P2 = [2 &times; ${p.f.toFixed(2)} &times; ${p.Q.toFixed(3)}&sup2; / (9.80665 &times; &pi; &times; ${p.D.toFixed(3)}&sup3;)] &times; ${p.L.toFixed(3)} = <strong>${mag_P2.toFixed(3)} ton</strong></div>
+                            <div><strong>Substitution:</strong> P2' = [2 &times; ${p.f.toFixed(2)} &times; ${p.Q.toFixed(3)}&sup2; / (9.80665 &times; &pi; &times; ${p.D.toFixed(3)}&sup3;)] &times; ${p.L_prime.toFixed(3)} = <strong>${mag_P2_prime.toFixed(3)} ton</strong></div>
                             <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #cbd5e1; color: #1e293b;">
                                 <strong>3D Components:</strong><br>
                                 Upstream P2: Fx = P2&middot;cos(&delta;) = <strong>${f.P2.x.toFixed(3)} ton</strong> | Fy = <strong>0.000 ton</strong> | Fz = -P2&middot;sin(&delta;) = <strong>${f.P2.z.toFixed(3)} ton</strong><br>
