@@ -484,10 +484,10 @@ function calculateStability() {
     const P3_val = p.He * Math.PI * p.D * p.t * gamma_w;
     const P3_prime_val = p.He_prime * Math.PI * p.D * p.t_prime * gamma_w;
     
-    // Rule 5: Upstream P3: Fz = P3*sin(delta)
+    // Rule 5: Upstream P3: Fz = P3*sin(delta) | Downstream P3': Fx = P3'*cos(delta')*cos(theta)
     const P3_vec = { x: P3_val * Math.cos(delta_val), y: 0.0, z: P3_val * Math.sin(delta_val) };
     const P3_prime_vec = {
-        x: -P3_prime_val * Math.cos(delta_prime_val) * Math.cos(theta_val),
+        x: P3_prime_val * Math.cos(delta_prime_val) * Math.cos(theta_val),
         y: P3_prime_val * Math.cos(delta_prime_val) * Math.sin(theta_val),
         z: P3_prime_val * Math.sin(delta_prime_val)
     };
