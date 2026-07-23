@@ -3617,12 +3617,43 @@ function generatePrintReportHtml() {
                     </div>
                 </div>
                 
-                <div style="font-size: 10px; font-family: 'Consolas', 'Courier New', monospace; border-top: 1px dashed #94a3b8; padding-top: 8px; color: #0f172a;">
-                    <div style="margin-bottom: 4px;"><strong>&Sigma;M = &Sigma;V&middot;${isXZ ? 'x' : 'y'} - &Sigma;H&middot;z = ${cs.sumM.toFixed(3)} ton&middot;m</strong></div>
-                    <div style="display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
-                        <span><strong>Safety for overturning:</strong> e = ${cs.e.toFixed(3)} ${cs.eccentricityPass ? '<' : '>'} ${cs.limit_e.toFixed(3)} m &bull; <strong style="color:${cs.eccentricityPass ? '#15803d':'#b91c1c'};">${cs.eccentricityPass ? 'PASS':'FAIL'}</strong></span>
-                        <span><strong>Safety for sliding:</strong> Fs = ${cs.Fs.toFixed(2)} ${cs.slidingPass ? '>' : '<'} ${state.jicaAuditMode ? '2.0' : (cs.eqLabel === 'Static' ? '2.0' : '1.2')} &bull; <strong style="color:${cs.slidingPass ? '#15803d':'#b91c1c'};">${cs.slidingPass ? 'PASS':'FAIL'}</strong></span>
-                        <span><strong>Safety for bearing:</strong> &sigma;max = ${fNum(cs.sigma, 2)} ${cs.bearingPass ? '<' : '>'} ${cs.limit_qa.toFixed(1)} t/m&sup2; &bull; <strong style="color:${cs.bearingPass ? '#15803d':'#b91c1c'};">${cs.bearingPass ? 'PASS':'FAIL'}</strong></span>
+                <div style="font-size: 9.5px; font-family: 'Consolas', 'Courier New', monospace; border-top: 1px dashed #cbd5e1; padding-top: 8px; color: #0f172a;">
+                    <div style="margin-bottom: 6px; background-color: #f1f5f9; padding: 6px; border-radius: 4px; border: 1px solid #e2e8f0;">
+                        <strong>Step 1: Net Resultant Moment:</strong> &Sigma;M = &Sigma;M_V - &Sigma;M_H = ${cs.momV.toFixed(3)} - (${cs.momH.toFixed(3)}) = <strong>${cs.sumM.toFixed(3)} ton&middot;m</strong>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 6px;">
+                        <!-- Overturning (e) -->
+                        <div style="border: 1px solid #cbd5e1; padding: 6px; border-radius: 3px; background: #fafafa;">
+                            <div style="font-weight: bold; color: #1e293b; margin-bottom: 2px;">(a) Overturning (Eccentricity e)</div>
+                            <div>Formula: e = |B/2 - &Sigma;M / &Sigma;V|</div>
+                            <div>Subst: e = |${(widthVal/2.0).toFixed(3)} - ${cs.sumM.toFixed(3)} / ${Math.abs(cs.totalV).toFixed(3)}| = <strong>${cs.e.toFixed(3)} m</strong></div>
+                            <div>Check: e = ${cs.e.toFixed(3)} m ${cs.eccentricityPass ? '&le;' : '>'} ${cs.limit_e.toFixed(3)} m &bull; <strong style="color:${cs.eccentricityPass ? '#15803d':'#b91c1c'};">${cs.eccentricityPass ? 'PASS':'FAIL'}</strong></div>
+                        </div>
+
+                        <!-- Sliding (Fs) -->
+                        <div style="border: 1px solid #cbd5e1; padding: 6px; border-radius: 3px; background: #fafafa;">
+                            <div style="font-weight: bold; color: #1e293b; margin-bottom: 2px;">(b) Safety against Sliding (Fs)</div>
+                            <div>Formula: Fs = (|&Sigma;V|&middot;&lambda; + R_key + V_anchors) / |&Sigma;H|</div>
+                            <div>Subst: Fs = (${Math.abs(cs.totalV).toFixed(3)} &times; ${p.lambda.toFixed(2)}) / ${Math.abs(cs.totalH).toFixed(3)} = <strong>${cs.Fs.toFixed(2)}</strong></div>
+                            <div>Check: Fs = ${cs.Fs.toFixed(2)} ${cs.slidingPass ? '&ge;' : '<'} ${state.jicaAuditMode ? '2.0' : (cs.eqLabel === 'Static' ? '2.0' : '1.2')} &bull; <strong style="color:${cs.slidingPass ? '#15803d':'#b91c1c'};">${cs.slidingPass ? 'PASS':'FAIL'}</strong></div>
+                        </div>
+
+                        <!-- Overturning FS (Fot) -->
+                        <div style="border: 1px solid #cbd5e1; padding: 6px; border-radius: 3px; background: #fafafa;">
+                            <div style="font-weight: bold; color: #1e293b; margin-bottom: 2px;">(c) Safety against Overturning (Fo)</div>
+                            <div>Formula: Fo = &Sigma;M_R / &Sigma;M_O</div>
+                            <div>Subst: Fo = ${cs.momV.toFixed(3)} / ${Math.abs(cs.momH).toFixed(3)} = <strong>${cs.Fot.toFixed(2)}</strong></div>
+                            <div>Check: Fo = ${cs.Fot.toFixed(2)} ${cs.overturningFSPass ? '&ge;' : '<'} 1.20 &bull; <strong style="color:${cs.overturningFSPass ? '#15803d':'#b91c1c'};">${cs.overturningFSPass ? 'PASS':'FAIL'}</strong></div>
+                        </div>
+
+                        <!-- Bearing Pressure (sigma_max) -->
+                        <div style="border: 1px solid #cbd5e1; padding: 6px; border-radius: 3px; background: #fafafa;">
+                            <div style="font-weight: bold; color: #1e293b; margin-bottom: 2px;">(d) Soil Bearing Pressure (&sigma;_max)</div>
+                            <div>Formula: ${cs.isLiftOff ? '&sigma; = 2|&Sigma;V| / [3(B/2 - e)W] (Heel Lift-off)' : '&sigma; = (|&Sigma;V|/A)&middot;(1 + 6e/B) (Full Contact)'}</div>
+                            <div>Subst: &sigma;_max = <strong>${fNum(cs.sigma, 2)} t/m&sup2;</strong></div>
+                            <div>Check: &sigma;_max = ${fNum(cs.sigma, 2)} ${cs.bearingPass ? '&le;' : '>'} ${cs.limit_qa.toFixed(2)} t/m&sup2; &bull; <strong style="color:${cs.bearingPass ? '#15803d':'#b91c1c'};">${cs.bearingPass ? 'PASS':'FAIL'}</strong></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -3706,17 +3737,138 @@ function generatePrintReportHtml() {
                     </tbody>
                 </table>
 
-                <h3 style="font-size: 12px; font-weight: 700; color: #1e293b; margin: 10px 0 6px 0;">(B) Acting Force Detailed Step-by-Step Calculations</h3>
-                <div style="font-size: 9.5px; line-height: 1.6; color: #334155; display: flex; flex-direction: column; gap: 6px;">
-                    <div><strong>(i) Perpendicular Thrust W & W':</strong> W = 0.5 &times; (${w.toFixed(3)} + ${s.toFixed(3)}) &times; ${p.l.toFixed(3)} &times; cos(${deg(delta_val).toFixed(2)}&deg;) = <strong>${mag_W.toFixed(3)} ton</strong> | W' = 0.5 &times; (${w.toFixed(3)} + ${s_prime.toFixed(3)}) &times; ${p.l_prime.toFixed(3)} &times; cos(${deg(delta_prime_val).toFixed(2)}&deg;) = <strong>${mag_W_prime.toFixed(3)} ton</strong></div>
-                    <div><strong>(ii) Pipe Axis Dead Weight P1 & P1':</strong> P1 = ${s.toFixed(3)} &times; ${p.L.toFixed(3)} &times; sin(${deg(delta_val).toFixed(2)}&deg;) = <strong>${mag_P1.toFixed(3)} ton</strong> | P1' = ${s_prime.toFixed(3)} &times; ${p.L_prime.toFixed(3)} &times; sin(${deg(delta_prime_val).toFixed(2)}&deg;) = <strong>${mag_P1_prime.toFixed(3)} ton</strong></div>
-                    <div><strong>(iii) Hydrodynamic Friction P2 & P2':</strong> P2 = (2 &times; ${p.f.toFixed(2)} &times; ${p.Q.toFixed(2)}&sup2; / (9.80665 &times; &pi; &times; ${p.D.toFixed(3)}&sup3;)) &times; ${p.L.toFixed(3)} = <strong>${mag_P2.toFixed(3)} ton</strong> | P2' = (2 &times; ${p.f.toFixed(2)} &times; ${p.Q.toFixed(2)}&sup2; / (9.80665 &times; &pi; &times; ${p.D.toFixed(3)}&sup3;)) &times; ${p.L_prime.toFixed(3)} = <strong>${mag_P2_prime.toFixed(3)} ton</strong></div>
-                    <div><strong>(iv) Centrifugal Forces Pv & Ph:</strong> Pv = 2 &times; (${v_water.toFixed(3)}&sup2;/9.80665) &times; ${A_pipe.toFixed(3)} &times; sin(${deg(Math.abs(phi_val)/2.0).toFixed(2)}&deg;) &times; 1.0 = <strong>${Pv_val.toFixed(3)} ton</strong> | Ph = 2 &times; (${v_water.toFixed(3)}&sup2;/9.80665) &times; ${A_pipe.toFixed(3)} &times; sin(${p.theta.toFixed(2)}&deg;/2) &times; 1.0 = <strong>${Ph_val.toFixed(3)} ton</strong></div>
-                    <div><strong>(v) Expansion Joint Hydrostatic Pressure P3 & P3':</strong> P3 = ${p.He.toFixed(1)} &times; &pi; &times; ${p.D.toFixed(3)} &times; ${p.t.toFixed(4)} &times; 1.0 = <strong>${mag_P3.toFixed(3)} ton</strong> | P3' = ${p.He_prime.toFixed(1)} &times; &pi; &times; ${p.D.toFixed(3)} &times; ${p.t_prime.toFixed(4)} &times; 1.0 = <strong>${mag_P3_prime.toFixed(3)} ton</strong></div>
-                    <div><strong>(vi) Unbalanced Bend Pressure Prv & Prh:</strong> Prv = 2 &times; ${p.H.toFixed(1)} &times; ${A_pipe.toFixed(3)} &times; sin(${deg(Math.abs(phi_val)/2.0).toFixed(2)}&deg;) &times; 1.0 = <strong>${Prv_val.toFixed(3)} ton</strong> | Prh = 2 &times; ${p.H.toFixed(1)} &times; ${A_pipe.toFixed(3)} &times; sin(${p.theta.toFixed(2)}&deg;/2) &times; 1.0 = <strong>${Prh_val.toFixed(3)} ton</strong></div>
-                    <div><strong>(vii) Temperature Expansion/Friction F & F':</strong> F1 = ${F1.toFixed(3)} ton, F2 = ${F2.toFixed(3)} ton &rarr; F = <strong>${F_total.toFixed(3)} ton</strong> | F1' = ${F1_prime.toFixed(3)} ton, F2' = ${F2_prime.toFixed(3)} ton &rarr; F' = <strong>${F_prime.toFixed(3)} ton</strong></div>
-                    <div><strong>(viii) Dead Weight of Anchor Block WA:</strong> WA = ${p.wc.toFixed(2)} &times; (${f.A_profile.toFixed(3)} &times; ${p.W.toFixed(2)} - ${A_pipe.toFixed(4)} &times; ${f.L_internal.toFixed(3)}) = <strong>${f.WA.toFixed(3)} ton</strong></div>
-                    <div><strong>(ix) Seismic Inertia Forces FWA & Fp:</strong> FWA = ${p.Kh.toFixed(2)} &times; ${f.WA.toFixed(3)} = <strong>${f.F_WA.toFixed(3)} ton</strong> | Fp = ${p.Kh.toFixed(2)} &times; [(${w.toFixed(3)}+${s.toFixed(3)})&times;${p.l.toFixed(3)}/2 + (${w.toFixed(3)}+${s_prime.toFixed(3)})&times;${p.l_prime.toFixed(3)}/2] = <strong>${f.F_p.toFixed(3)} ton</strong></div>
+                <h3 style="font-size: 12px; font-weight: 700; color: #1e293b; margin: 12px 0 8px 0;">(B) Acting Force Detailed Step-by-Step Calculations & 3D Resolutions</h3>
+                <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
+                    <!-- Card 1 -->
+                    <div style="border: 1px solid #cbd5e1; border-radius: 4px; padding: 8px 10px; background-color: #f8fafc;">
+                        <div style="font-weight: bold; font-size: 10px; color: #0f172a; margin-bottom: 4px;">(i) Perpendicular Weight Thrust W & W'</div>
+                        <div style="font-size: 9px; color: #334155; line-height: 1.5; font-family: 'Consolas', 'Courier New', monospace;">
+                            <div><strong>Formula:</strong> W = 0.5 &middot; (w + s) &middot; l &middot; cos(&delta;) &nbsp;|&nbsp; W' = 0.5 &middot; (w + s') &middot; l' &middot; cos(&delta;')</div>
+                            <div><strong>Substitution:</strong> W = 0.5 &times; (${w.toFixed(3)} + ${s.toFixed(3)}) &times; ${p.l.toFixed(3)} &times; cos(${deg(delta_val).toFixed(2)}&deg;) = <strong>${mag_W.toFixed(3)} ton</strong></div>
+                            <div><strong>Substitution:</strong> W' = 0.5 &times; (${w.toFixed(3)} + ${s_prime.toFixed(3)}) &times; ${p.l_prime.toFixed(3)} &times; cos(${deg(delta_prime_val).toFixed(2)}&deg;) = <strong>${mag_W_prime.toFixed(3)} ton</strong></div>
+                            <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #cbd5e1; color: #1e293b;">
+                                <strong>3D Components:</strong><br>
+                                Upstream W: Fx = W&middot;sin(&delta;) = <strong>${f.W.x.toFixed(3)} ton</strong> | Fy = <strong>0.000 ton</strong> | Fz = -W&middot;cos(&delta;) = <strong>${f.W.z.toFixed(3)} ton</strong><br>
+                                Downstream W': Fx = W'&middot;sin(&delta;')&middot;cos(&theta;) = <strong>${f.W_prime.x.toFixed(3)} ton</strong> | Fy = -W'&middot;sin(&delta;')&middot;sin(&theta;) = <strong>${f.W_prime.y.toFixed(3)} ton</strong> | Fz = -W'&middot;cos(&delta;') = <strong>${f.W_prime.z.toFixed(3)} ton</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 2 -->
+                    <div style="border: 1px solid #cbd5e1; border-radius: 4px; padding: 8px 10px; background-color: #f8fafc;">
+                        <div style="font-weight: bold; font-size: 10px; color: #0f172a; margin-bottom: 4px;">(ii) Pipe Axis Dead Weight P1 & P1'</div>
+                        <div style="font-size: 9px; color: #334155; line-height: 1.5; font-family: 'Consolas', 'Courier New', monospace;">
+                            <div><strong>Formula:</strong> P1 = s &middot; L &middot; sin(&delta;) &nbsp;|&nbsp; P1' = s' &middot; L' &middot; sin(&delta;')</div>
+                            <div><strong>Substitution:</strong> P1 = ${s.toFixed(3)} &times; ${p.L.toFixed(3)} &times; sin(${deg(delta_val).toFixed(2)}&deg;) = <strong>${mag_P1.toFixed(3)} ton</strong> &nbsp;|&nbsp; P1' = ${s_prime.toFixed(3)} &times; ${p.L_prime.toFixed(3)} &times; sin(${deg(delta_prime_val).toFixed(2)}&deg;) = <strong>${mag_P1_prime.toFixed(3)} ton</strong></div>
+                            <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #cbd5e1; color: #1e293b;">
+                                <strong>3D Components:</strong><br>
+                                Upstream P1: Fx = P1&middot;cos(&delta;) = <strong>${f.P1.x.toFixed(3)} ton</strong> | Fy = <strong>0.000 ton</strong> | Fz = -P1&middot;sin(&delta;) = <strong>${f.P1.z.toFixed(3)} ton</strong><br>
+                                Downstream P1': Fx = P1'&middot;cos(&delta;')&middot;cos(&theta;) = <strong>${f.P1_prime.x.toFixed(3)} ton</strong> | Fy = -P1'&middot;cos(&delta;')&middot;sin(&theta;) = <strong>${f.P1_prime.y.toFixed(3)} ton</strong> | Fz = -P1'&middot;sin(&delta;') = <strong>${f.P1_prime.z.toFixed(3)} ton</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 3 -->
+                    <div style="border: 1px solid #cbd5e1; border-radius: 4px; padding: 8px 10px; background-color: #f8fafc;">
+                        <div style="font-weight: bold; font-size: 10px; color: #0f172a; margin-bottom: 4px;">(iii) Hydrodynamic Friction P2 & P2'</div>
+                        <div style="font-size: 9px; color: #334155; line-height: 1.5; font-family: 'Consolas', 'Courier New', monospace;">
+                            <div><strong>Formula:</strong> P2 = [2 &middot; f &middot; Q&sup2; / (g &middot; &pi; &middot; D&sup3;)] &middot; L &nbsp;|&nbsp; P2' = [2 &middot; f &middot; Q&sup2; / (g &middot; &pi; &middot; D&sup3;)] &middot; L'</div>
+                            <div><strong>Substitution:</strong> P2 = [2 &times; ${p.f.toFixed(2)} &times; ${p.Q.toFixed(2)}&sup2; / (9.80665 &times; &pi; &times; ${p.D.toFixed(3)}&sup3;)] &times; ${p.L.toFixed(3)} = <strong>${mag_P2.toFixed(3)} ton</strong></div>
+                            <div><strong>Substitution:</strong> P2' = [2 &times; ${p.f.toFixed(2)} &times; ${p.Q.toFixed(2)}&sup2; / (9.80665 &times; &pi; &times; ${p.D.toFixed(3)}&sup3;)] &times; ${p.L_prime.toFixed(3)} = <strong>${mag_P2_prime.toFixed(3)} ton</strong></div>
+                            <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #cbd5e1; color: #1e293b;">
+                                <strong>3D Components:</strong><br>
+                                Upstream P2: Fx = P2&middot;cos(&delta;) = <strong>${f.P2.x.toFixed(3)} ton</strong> | Fy = <strong>0.000 ton</strong> | Fz = -P2&middot;sin(&delta;) = <strong>${f.P2.z.toFixed(3)} ton</strong><br>
+                                Downstream P2': Fx = P2'&middot;cos(&delta;')&middot;cos(&theta;) = <strong>${f.P2_prime.x.toFixed(3)} ton</strong> | Fy = -P2'&middot;cos(&delta;')&middot;sin(&theta;) = <strong>${f.P2_prime.y.toFixed(3)} ton</strong> | Fz = -P2'&middot;sin(&delta;') = <strong>${f.P2_prime.z.toFixed(3)} ton</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 4 -->
+                    <div style="border: 1px solid #cbd5e1; border-radius: 4px; padding: 8px 10px; background-color: #f8fafc;">
+                        <div style="font-weight: bold; font-size: 10px; color: #0f172a; margin-bottom: 4px;">(iv) Centrifugal Forces Pv & Ph</div>
+                        <div style="font-size: 9px; color: #334155; line-height: 1.5; font-family: 'Consolas', 'Courier New', monospace;">
+                            <div><strong>Formula:</strong> Pv = 2 &middot; (v&sup2;/g) &middot; A &middot; sin(&phi;/2) &middot; &gamma;w &nbsp;|&nbsp; Ph = 2 &middot; (v&sup2;/g) &middot; A &middot; sin(&theta;/2) &middot; &gamma;w</div>
+                            <div><strong>Substitution:</strong> Pv = 2 &times; (${v_water.toFixed(3)}&sup2;/9.80665) &times; ${A_pipe.toFixed(3)} &times; sin(${deg(Math.abs(phi_val)/2.0).toFixed(2)}&deg;) &times; 1.0 = <strong>${Pv_val.toFixed(3)} ton</strong></div>
+                            <div><strong>Substitution:</strong> Ph = 2 &times; (${v_water.toFixed(3)}&sup2;/9.80665) &times; ${A_pipe.toFixed(3)} &times; sin(${p.theta.toFixed(2)}&deg;/2) &times; 1.0 = <strong>${Ph_val.toFixed(3)} ton</strong></div>
+                            <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #cbd5e1; color: #1e293b;">
+                                <strong>3D Components:</strong><br>
+                                Vertical Pv: Fx = Pv&middot;sin(&phi;/2) = <strong>${f.Pv.x.toFixed(3)} ton</strong> | Fy = <strong>0.000 ton</strong> | Fz = Pv&middot;cos(&phi;/2) = <strong>${f.Pv.z.toFixed(3)} ton</strong><br>
+                                Horizontal Ph: Fx = Ph&middot;sin(&theta;/2) = <strong>${f.Ph.x.toFixed(3)} ton</strong> | Fy = Ph&middot;cos(&theta;/2) = <strong>${f.Ph.y.toFixed(3)} ton</strong> | Fz = <strong>0.000 ton</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 5 -->
+                    <div style="border: 1px solid #cbd5e1; border-radius: 4px; padding: 8px 10px; background-color: #f8fafc;">
+                        <div style="font-weight: bold; font-size: 10px; color: #0f172a; margin-bottom: 4px;">(v) Expansion Joint Hydrostatic Pressure P3 & P3'</div>
+                        <div style="font-size: 9px; color: #334155; line-height: 1.5; font-family: 'Consolas', 'Courier New', monospace;">
+                            <div><strong>Formula:</strong> P3 = He &middot; &pi; &middot; D &middot; t &middot; &gamma;w &nbsp;|&nbsp; P3' = He' &middot; &pi; &middot; D &middot; t' &middot; &gamma;w</div>
+                            <div><strong>Substitution:</strong> P3 = ${p.He.toFixed(1)} &times; &pi; &times; ${p.D.toFixed(3)} &times; ${p.t.toFixed(4)} &times; 1.0 = <strong>${mag_P3.toFixed(3)} ton</strong> &nbsp;|&nbsp; P3' = ${p.He_prime.toFixed(1)} &times; &pi; &times; ${p.D.toFixed(3)} &times; ${p.t_prime.toFixed(4)} &times; 1.0 = <strong>${mag_P3_prime.toFixed(3)} ton</strong></div>
+                            <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #cbd5e1; color: #1e293b;">
+                                <strong>3D Components:</strong><br>
+                                Upstream P3: Fx = P3&middot;cos(&delta;) = <strong>${f.P3.x.toFixed(3)} ton</strong> | Fy = <strong>0.000 ton</strong> | Fz = -P3&middot;sin(&delta;) = <strong>${f.P3.z.toFixed(3)} ton</strong><br>
+                                Downstream P3': Fx = P3'&middot;cos(&delta;')&middot;cos(&theta;) = <strong>${f.P3_prime.x.toFixed(3)} ton</strong> | Fy = -P3'&middot;cos(&delta;')&middot;sin(&theta;) = <strong>${f.P3_prime.y.toFixed(3)} ton</strong> | Fz = -P3'&middot;sin(&delta;') = <strong>${f.P3_prime.z.toFixed(3)} ton</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 6 -->
+                    <div style="border: 1px solid #cbd5e1; border-radius: 4px; padding: 8px 10px; background-color: #f8fafc;">
+                        <div style="font-weight: bold; font-size: 10px; color: #0f172a; margin-bottom: 4px;">(vi) Unbalanced Internal Pressure at Bends Prv & Prh</div>
+                        <div style="font-size: 9px; color: #334155; line-height: 1.5; font-family: 'Consolas', 'Courier New', monospace;">
+                            <div><strong>Formula:</strong> Prv = 2 &middot; H &middot; A &middot; sin(&phi;/2) &middot; &gamma;w &nbsp;|&nbsp; Prh = 2 &middot; H &middot; A &middot; sin(&theta;/2) &middot; &gamma;w</div>
+                            <div><strong>Substitution:</strong> Prv = 2 &times; ${p.H.toFixed(1)} &times; ${A_pipe.toFixed(3)} &times; sin(${deg(Math.abs(phi_val)/2.0).toFixed(2)}&deg;) &times; 1.0 = <strong>${Prv_val.toFixed(3)} ton</strong></div>
+                            <div><strong>Substitution:</strong> Prh = 2 &times; ${p.H.toFixed(1)} &times; ${A_pipe.toFixed(3)} &times; sin(${p.theta.toFixed(2)}&deg;/2) &times; 1.0 = <strong>${Prh_val.toFixed(3)} ton</strong></div>
+                            <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #cbd5e1; color: #1e293b;">
+                                <strong>3D Components:</strong><br>
+                                Vertical Prv: Fx = Prv&middot;sin(&phi;/2) = <strong>${f.Prv.x.toFixed(3)} ton</strong> | Fy = <strong>0.000 ton</strong> | Fz = Prv&middot;cos(&phi;/2) = <strong>${f.Prv.z.toFixed(3)} ton</strong><br>
+                                Horizontal Prh: Fx = Prh&middot;sin(&theta;/2) = <strong>${f.Prh.x.toFixed(3)} ton</strong> | Fy = Prh&middot;cos(&theta;/2) = <strong>${f.Prh.y.toFixed(3)} ton</strong> | Fz = <strong>0.000 ton</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 7 -->
+                    <div style="border: 1px solid #cbd5e1; border-radius: 4px; padding: 8px 10px; background-color: #f8fafc;">
+                        <div style="font-weight: bold; font-size: 10px; color: #0f172a; margin-bottom: 4px;">(vii) Temperature Expansion Friction Forces (F1, F2 &rarr; F | F1', F2' &rarr; F')</div>
+                        <div style="font-size: 9px; color: #334155; line-height: 1.5; font-family: 'Consolas', 'Courier New', monospace;">
+                            <div><strong>Formulas:</strong> F1 = c&middot;(w+s)&middot;(L-l/2)&middot;cos(&delta;) | F2 = fe&middot;&pi;&middot;(D+2t) | F = F1 + F2</div>
+                            <div><strong>Formulas:</strong> F1' = c&middot;(w+s')&middot;(L'-l'/2)&middot;cos(&delta;') | F2' = fe&middot;&pi;&middot;(D+2t') | F' = F1' + F2'</div>
+                            <div><strong>Substitution:</strong> F1 = ${F1.toFixed(3)} ton, F2 = ${F2.toFixed(3)} ton &rarr; Upstream Total F = <strong>${F_total.toFixed(3)} ton</strong></div>
+                            <div><strong>Substitution:</strong> F1' = ${F1_prime.toFixed(3)} ton, F2' = ${F2_prime.toFixed(3)} ton &rarr; Downstream Total F' = <strong>${F_prime.toFixed(3)} ton</strong></div>
+                            <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #cbd5e1; color: #1e293b;">
+                                <strong>3D Components:</strong><br>
+                                Upstream F: Fx = F&middot;cos(&delta;) = <strong>${f.F.x.toFixed(3)} ton</strong> | Fy = <strong>0.000 ton</strong> | Fz = -F&middot;sin(&delta;) = <strong>${f.F.z.toFixed(3)} ton</strong><br>
+                                Downstream F': Fx = F'&middot;cos(&delta;')&middot;cos(&theta;) = <strong>${f.F_prime.x.toFixed(3)} ton</strong> | Fy = -F'&middot;cos(&delta;')&middot;sin(&theta;) = <strong>${f.F_prime.y.toFixed(3)} ton</strong> | Fz = -F'&middot;sin(&delta;') = <strong>${f.F_prime.z.toFixed(3)} ton</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 8 -->
+                    <div style="border: 1px solid #cbd5e1; border-radius: 4px; padding: 8px 10px; background-color: #f8fafc;">
+                        <div style="font-weight: bold; font-size: 10px; color: #0f172a; margin-bottom: 4px;">(viii) Concrete Anchor Block Dead Weight WA</div>
+                        <div style="font-size: 9px; color: #334155; line-height: 1.5; font-family: 'Consolas', 'Courier New', monospace;">
+                            <div><strong>Formula:</strong> WA = &gamma;c &middot; (A_profile &middot; W_base - A_pipe &middot; L_internal)</div>
+                            <div><strong>Substitution:</strong> WA = ${p.wc.toFixed(2)} &times; (${f.A_profile.toFixed(3)} &times; ${p.W.toFixed(2)} - ${A_pipe.toFixed(4)} &times; ${f.L_internal.toFixed(3)}) = <strong>${f.WA.toFixed(3)} ton</strong></div>
+                            <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #cbd5e1; color: #1e293b;">
+                                <strong>3D Components:</strong> Fx = <strong>0.000 ton</strong> | Fy = <strong>0.000 ton</strong> | Fz = -WA = <strong>${(-f.WA).toFixed(3)} ton</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 9 -->
+                    <div style="border: 1px solid #cbd5e1; border-radius: 4px; padding: 8px 10px; background-color: #f8fafc;">
+                        <div style="font-weight: bold; font-size: 10px; color: #0f172a; margin-bottom: 4px;">(ix) Seismic Inertia Forces FWA & Fp</div>
+                        <div style="font-size: 9px; color: #334155; line-height: 1.5; font-family: 'Consolas', 'Courier New', monospace;">
+                            <div><strong>Formula:</strong> FWA = Kh &middot; WA &nbsp;|&nbsp; Fp = Kh &middot; [(w+s)&middot;l/2 + (w+s')&middot;l'/2]</div>
+                            <div><strong>Substitution:</strong> FWA = ${p.Kh.toFixed(2)} &times; ${f.WA.toFixed(3)} = <strong>${f.F_WA.toFixed(3)} ton</strong></div>
+                            <div><strong>Substitution:</strong> Fp = ${p.Kh.toFixed(2)} &times; [(${w.toFixed(3)}+${s.toFixed(3)})&times;${p.l.toFixed(3)}/2 + (${w.toFixed(3)}+${s_prime.toFixed(3)})&times;${p.l_prime.toFixed(3)}/2] = <strong>${f.F_p.toFixed(3)} ton</strong></div>
+                            <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #cbd5e1; color: #1e293b;">
+                                <strong>3D Components:</strong><br>
+                                FWA: Fx = <strong>${f.F_WA.toFixed(3)} ton</strong> | Fy = <strong>0.000 ton</strong> | Fz = <strong>0.000 ton</strong><br>
+                                Fp: Fx = <strong>${f.F_p.toFixed(3)} ton</strong> | Fy = <strong>0.000 ton</strong> | Fz = <strong>0.000 ton</strong>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <h3 style="font-size: 12px; font-weight: 700; color: #1e293b; margin: 12px 0 6px 0;">(C) Check of Safety Criteria</h3>
