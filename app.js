@@ -3460,10 +3460,10 @@ function generatePrintReportHtml() {
     const c4_y = f.P_vec.y - f.F.y - f.F_prime.y;
     const c4_z = f.P_vec.z - f.F.z - f.F_prime.z;
 
-    const mag_c1 = Math.sqrt(c1_x**2 + c1_y**2 + c1_z**2);
-    const mag_c2 = Math.sqrt(c2_x**2 + c2_y**2 + c2_z**2);
-    const mag_c3 = Math.sqrt(c3_x**2 + c3_y**2 + c3_z**2);
-    const mag_c4 = Math.sqrt(c4_x**2 + c4_y**2 + c4_z**2);
+    const mag_c1 = mag_P_vec + mag_F + mag_F_prime;
+    const mag_c2 = mag_P_vec + mag_F - mag_F_prime;
+    const mag_c3 = Math.abs(mag_P_vec - mag_F + mag_F_prime);
+    const mag_c4 = Math.abs(mag_P_vec - mag_F - mag_F_prime);
 
     // Table 2.1.1 rows
     const table211_rows = `
