@@ -550,10 +550,6 @@ function calculateStability() {
         const Ry = P_vec.y + c.fSign * F_vec.y + c.fPrimeSign * F_prime_vec.y;
         const Rz = P_vec.z + c.fSign * F_vec.z + c.fPrimeSign * F_prime_vec.z;
 
-        const Tx = c.fSign * F_vec.x + c.fPrimeSign * F_prime_vec.x;
-        const Ty = c.fSign * F_vec.y + c.fPrimeSign * F_prime_vec.y;
-        const Tz = c.fSign * F_vec.z + c.fPrimeSign * F_prime_vec.z;
-
         const h_CG_val = state.jicaAuditMode ? 2.500 : (z_CG - z_min);
         const h_pipe_val = state.jicaAuditMode ? 3.000 : ((state.coordinates.pipeXZ && state.coordinates.pipeXZ[1] ? state.coordinates.pipeXZ[1].z : p.H_ab / 2.0) - z_min);
         const x_pipe = state.jicaAuditMode ? 3.000 : (state.coordinates.pipeXZ && state.coordinates.pipeXZ[1] ? state.coordinates.pipeXZ[1].x : p.B / 2.0);
@@ -647,7 +643,7 @@ function calculateStability() {
                 P_p: P_p,
                 R_cohesion: R_cohesion,
                 passed: eccentricityPass && overturningFSPass && slidingPass && bearingPass,
-                momV: momV_clamped, momH, sumM, x_res, Rx, Ry, Rz, Tx, Ty, Tz
+                momV: momV_clamped, momH, sumM, x_res, Rx, Ry, Rz
             });
         });
 
@@ -741,7 +737,7 @@ function calculateStability() {
                 P_p: P_p,
                 R_cohesion: R_cohesion,
                 passed: eccentricityPass && overturningFSPass && slidingPass && bearingPass,
-                momV: momV_clamped, momH, sumM, y_res, Rx, Ry, Rz, Tx, Ty, Tz
+                momV: momV_clamped, momH, sumM, y_res, Rx, Ry, Rz
             });
         });
     });
@@ -1565,7 +1561,7 @@ function renderDetailedCalculationCard() {
                 <div class="report-equation">
                     R_constant = W + W' + P1 + P1' + P2 + P2' + Pv + Ph + P3 + P3' + Prv + Prh<br>
                     R_constant Vector = [x: ${f.P_vec.x.toFixed(3)}, y: ${f.P_vec.y.toFixed(3)}, z: ${f.P_vec.z.toFixed(3)}] ton<br><br>
-                    Temperature Vector T = ${c.combination} = [x: ${(c.Tx !== undefined ? c.Tx : 0).toFixed(3)}, y: ${(c.Ty !== undefined ? c.Ty : 0).toFixed(3)}, z: ${(c.Tz !== undefined ? c.Tz : 0).toFixed(3)}] ton<br>
+                    Temperature Vector T = ${c.combination} = [x: ${c.Tx.toFixed(3)}, y: ${c.Ty.toFixed(3)}, z: ${c.Tz.toFixed(3)}] ton<br>
                     Combined Force R = R_constant + T = [x: ${c.Rx.toFixed(3)}, y: ${c.Ry.toFixed(3)}, z: ${c.Rz.toFixed(3)}] ton
                 </div>
             </div>
@@ -3077,143 +3073,95 @@ function initEvents() {
         }
     });
     
-function safeBind(id, event, handler) {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener(event, handler);
-}
-
-function initEvents() {
-    document.querySelectorAll('.step-item').forEach(item => {
-        item.addEventListener('click', () => {
-            const step = parseInt(item.getAttribute('data-step'));
-            setStep(step);
-        });
-    });
-    
-    safeBind('btn-add-cut-row', 'click', () => {
-        state.coordinates.cutLineCoords.push({ x: 0.0, y: 0.0 });
-        renderCutCoordsTable();
-    });
-    safeBind('btn-follow-pipe', 'click', () => {
-        state.coordinates.cutLineCoords = JSON.parse(JSON.stringify(state.coordinates.pipeXY));
-        renderCutCoordsTable();
-        validateAndDraw();
-    });
-
-    safeBind('btn-wizard-prev', 'click', () => {
-        setStep(state.currentStep - 1);
-    });
-    safeBind('btn-wizard-next', 'click', () => {
-        if (state.currentStep === 4) {
-            setStep(1);
-        } else {
-            const L1 = Math.sqrt((state.coordinates.pipeXY[1].x - state.coordinates.pipeXY[0].x)**2 + (state.coordinates.pipeXY[1].y - state.coordinates.pipeXY[0].y)**2);
-            const L2 = Math.sqrt((state.coordinates.pipeXY[2].x - state.coordinates.pipeXY[1].x)**2 + (state.coordinates.pipeXY[2].y - state.coordinates.pipeXY[1].y)**2);
-            let L_cut = 0;
-            const m = state.coordinates.cutLineCoords.length;
-            for (let i = 0; i < m - 1; i++) {
-                L_cut += Math.sqrt((state.coordinates.cutLineCoords[i+1].x - state.coordinates.cutLineCoords[i].x)**2 + (state.coordinates.cutLineCoords[i+1].y - state.coordinates.cutLineCoords[i].y)**2);
-            }
-            let hasError = false;
-            
-            if (state.currentStep === 2) {
-                state.coordinates.xzCoords.forEach(pt => {
-                    if (pt.x < 0 || pt.x > L_cut) hasError = true;
-                });
-            } else if (state.currentStep === 3) {
-                const pipeCenter = { x: state.coordinates.pipeCenterYZ.y, y: state.coordinates.pipeCenterYZ.z };
-                if (!isPointInPolygon(pipeCenter, state.coordinates.yzCoords)) hasError = true;
-            }
-            
-            if (hasError) {
-                alert("Please resolve coordinate boundary errors before moving forward!");
-                return;
-            }
-            setStep(state.currentStep + 1);
-        }
-    });
-    
     // Blueprint view toggles
     const views = ['plan', 'profile', 'section', '3d'];
     views.forEach(v => {
-        safeBind(`btn-view-${v}`, 'click', () => {
-            state.activeBlueprintView = v;
-            validateAndDraw();
-        });
+        const btn = document.getElementById(`btn-view-${v}`);
+        if (btn) {
+            btn.addEventListener('click', () => {
+                state.activeBlueprintView = v;
+                validateAndDraw();
+            });
+        }
     });
 
-    safeBind('btn-add-xy-row', 'click', () => {
+    document.getElementById('btn-add-xy-row').addEventListener('click', () => {
         state.coordinates.xyCoords.push({ x: 0.0, y: 0.0 });
         renderXYCoordsTable();
     });
-    safeBind('btn-add-xz-row', 'click', () => {
+    document.getElementById('btn-add-xz-row').addEventListener('click', () => {
         state.coordinates.xzCoords.push({ x: 0.0, z: 0.0 });
         renderXZCoordsTable();
     });
-    safeBind('btn-add-ground-row', 'click', () => {
+    document.getElementById('btn-add-ground-row').addEventListener('click', () => {
         state.coordinates.groundCoords.push({ x: 0.0, z: 0.0 });
         renderXZGroundTable();
     });
-    safeBind('btn-add-yz-row', 'click', () => {
+    document.getElementById('btn-add-yz-row').addEventListener('click', () => {
         state.coordinates.yzCoords.push({ y: 0.0, z: 0.0 });
         renderYZCoordsTable();
     });
     
     // Inputs binding
-    safeBind('pipe-xy-x1', 'change', (e) => { state.coordinates.pipeXY[0].x = parseFloat(e.target.value); validateAndDraw(); });
-    safeBind('pipe-xy-y1', 'change', (e) => { state.coordinates.pipeXY[0].y = parseFloat(e.target.value); validateAndDraw(); });
-    safeBind('pipe-xy-x2', 'change', (e) => { state.coordinates.pipeXY[1].x = parseFloat(e.target.value); validateAndDraw(); });
-    safeBind('pipe-xy-y2', 'change', (e) => { state.coordinates.pipeXY[1].y = parseFloat(e.target.value); validateAndDraw(); });
-    safeBind('pipe-xy-x3', 'change', (e) => { state.coordinates.pipeXY[2].x = parseFloat(e.target.value); validateAndDraw(); });
-    safeBind('pipe-xy-y3', 'change', (e) => { state.coordinates.pipeXY[2].y = parseFloat(e.target.value); validateAndDraw(); });
+    document.getElementById('pipe-xy-x1').addEventListener('change', (e) => { state.coordinates.pipeXY[0].x = parseFloat(e.target.value); validateAndDraw(); });
+    document.getElementById('pipe-xy-y1').addEventListener('change', (e) => { state.coordinates.pipeXY[0].y = parseFloat(e.target.value); validateAndDraw(); });
+    document.getElementById('pipe-xy-x2').addEventListener('change', (e) => { state.coordinates.pipeXY[1].x = parseFloat(e.target.value); validateAndDraw(); });
+    document.getElementById('pipe-xy-y2').addEventListener('change', (e) => { state.coordinates.pipeXY[1].y = parseFloat(e.target.value); validateAndDraw(); });
+    document.getElementById('pipe-xy-x3').addEventListener('change', (e) => { state.coordinates.pipeXY[2].x = parseFloat(e.target.value); validateAndDraw(); });
+    document.getElementById('pipe-xy-y3').addEventListener('change', (e) => { state.coordinates.pipeXY[2].y = parseFloat(e.target.value); validateAndDraw(); });
     
-    safeBind('param-D', 'change', (e) => { state.params.D = parseFloat(e.target.value); validateAndDraw(); });
-    safeBind('param-t', 'change', (e) => { state.params.t = parseFloat(e.target.value); validateAndDraw(); });
-    safeBind('param-t_prime', 'change', (e) => { state.params.t_prime = parseFloat(e.target.value); validateAndDraw(); });
-    safeBind('param-L', 'change', (e) => { state.params.L = parseFloat(e.target.value); validateAndDraw(); });
-    safeBind('param-L_prime', 'change', (e) => { state.params.L_prime = parseFloat(e.target.value); validateAndDraw(); });
-    safeBind('param-l_prime', 'change', (e) => { state.params.l_prime = parseFloat(e.target.value); validateAndDraw(); });
-    safeBind('param-rs', 'change', (e) => { state.params.rs = parseFloat(e.target.value); validateAndDraw(); });
+    document.getElementById('param-D').addEventListener('change', (e) => { state.params.D = parseFloat(e.target.value); validateAndDraw(); });
+    document.getElementById('param-t').addEventListener('change', (e) => { state.params.t = parseFloat(e.target.value); validateAndDraw(); });
+    document.getElementById('param-t_prime').addEventListener('change', (e) => { state.params.t_prime = parseFloat(e.target.value); validateAndDraw(); });
+    document.getElementById('param-L').addEventListener('change', (e) => { state.params.L = parseFloat(e.target.value); validateAndDraw(); });
+    document.getElementById('param-L_prime').addEventListener('change', (e) => { state.params.L_prime = parseFloat(e.target.value); validateAndDraw(); });
+    document.getElementById('param-l_prime').addEventListener('change', (e) => { state.params.l_prime = parseFloat(e.target.value); validateAndDraw(); });
+    document.getElementById('param-rs').addEventListener('change', (e) => { state.params.rs = parseFloat(e.target.value); validateAndDraw(); });
     
-    safeBind('pipe-center-y', 'change', (e) => { state.coordinates.pipeCenterYZ.y = parseFloat(e.target.value); validateAndDraw(); });
-    safeBind('pipe-center-z', 'change', (e) => { state.coordinates.pipeCenterYZ.z = parseFloat(e.target.value); validateAndDraw(); });
-    safeBind('param-qa', 'change', (e) => { state.params.qa = parseFloat(e.target.value); validateAndDraw(); });
-    safeBind('param-lambda', 'change', (e) => { state.params.lambda = parseFloat(e.target.value); validateAndDraw(); });
-    safeBind('param-Kh', 'change', (e) => { state.params.Kh = parseFloat(e.target.value); validateAndDraw(); });
-    safeBind('param-l', 'change', (e) => { state.params.l = parseFloat(e.target.value); validateAndDraw(); });
+    document.getElementById('pipe-center-y').addEventListener('change', (e) => { state.coordinates.pipeCenterYZ.y = parseFloat(e.target.value); validateAndDraw(); });
+    document.getElementById('pipe-center-z').addEventListener('change', (e) => { state.coordinates.pipeCenterYZ.z = parseFloat(e.target.value); validateAndDraw(); });
+    document.getElementById('param-qa').addEventListener('change', (e) => { state.params.qa = parseFloat(e.target.value); validateAndDraw(); });
+    document.getElementById('param-lambda').addEventListener('change', (e) => { state.params.lambda = parseFloat(e.target.value); validateAndDraw(); });
+    document.getElementById('param-Kh').addEventListener('change', (e) => { state.params.Kh = parseFloat(e.target.value); validateAndDraw(); });
+    document.getElementById('param-l').addEventListener('change', (e) => { state.params.l = parseFloat(e.target.value); validateAndDraw(); });
     
-    safeBind('param-H', 'change', (e) => { state.params.H = parseFloat(e.target.value); validateAndDraw(); });
-    safeBind('param-Q', 'change', (e) => { state.params.Q = parseFloat(e.target.value); validateAndDraw(); });
-    safeBind('param-He', 'change', (e) => { state.params.He = parseFloat(e.target.value); validateAndDraw(); });
-    safeBind('param-He_prime', 'change', (e) => { state.params.He_prime = parseFloat(e.target.value); validateAndDraw(); });
-    safeBind('param-wc', 'change', (e) => { state.params.wc = parseFloat(e.target.value); validateAndDraw(); });
-    safeBind('param-c', 'change', (e) => { state.params.c = parseFloat(e.target.value); validateAndDraw(); });
-    safeBind('param-f', 'change', (e) => { state.params.f = parseFloat(e.target.value); validateAndDraw(); });
-    safeBind('param-fe', 'change', (e) => { state.params.fe = parseFloat(e.target.value); validateAndDraw(); });
+    document.getElementById('param-H').addEventListener('change', (e) => { state.params.H = parseFloat(e.target.value); validateAndDraw(); });
+    document.getElementById('param-Q').addEventListener('change', (e) => { state.params.Q = parseFloat(e.target.value); validateAndDraw(); });
+    document.getElementById('param-He').addEventListener('change', (e) => { state.params.He = parseFloat(e.target.value); validateAndDraw(); });
+    document.getElementById('param-He_prime').addEventListener('change', (e) => { state.params.He_prime = parseFloat(e.target.value); validateAndDraw(); });
+    document.getElementById('param-wc').addEventListener('change', (e) => { state.params.wc = parseFloat(e.target.value); validateAndDraw(); });
+    document.getElementById('param-c').addEventListener('change', (e) => { state.params.c = parseFloat(e.target.value); validateAndDraw(); });
+    document.getElementById('param-f').addEventListener('change', (e) => { state.params.f = parseFloat(e.target.value); validateAndDraw(); });
+    document.getElementById('param-fe').addEventListener('change', (e) => { state.params.fe = parseFloat(e.target.value); validateAndDraw(); });
     
-    safeBind('param-soil-cohesion', 'change', (e) => {
+    document.getElementById('param-soil-cohesion').addEventListener('change', (e) => {
         state.params.soil_cohesion = parseFloat(e.target.value);
         validateAndDraw();
     });
-    safeBind('param-soil-friction-angle', 'change', (e) => {
+    document.getElementById('param-soil-friction-angle').addEventListener('change', (e) => {
         state.params.soil_friction_angle = parseFloat(e.target.value);
         validateAndDraw();
     });
-    safeBind('param-bearing-increase-factor', 'change', (e) => {
+    
+    document.getElementById('param-bearing-increase-factor').addEventListener('change', (e) => {
         state.params.bearing_increase_factor = parseFloat(e.target.value);
         validateAndDraw();
     });
-    safeBind('buried-condition-toggle', 'change', (e) => {
+    
+    document.getElementById('buried-condition-toggle').addEventListener('change', (e) => {
         state.params.buriedCondition = e.target.checked;
         validateAndDraw();
     });
 
-    safeBind('jica-audit-toggle', 'change', (e) => {
-        state.jicaAuditMode = e.target.checked;
-        validateAndDraw();
-    });
+    const jicaToggle = document.getElementById('jica-audit-toggle');
+    if (jicaToggle) {
+        jicaToggle.addEventListener('change', (e) => {
+            state.jicaAuditMode = e.target.checked;
+            validateAndDraw();
+        });
+    }
 
-    safeBind('mitigation-toggle', 'change', (e) => {
+    document.getElementById('mitigation-toggle').addEventListener('change', (e) => {
         state.params.mitigation_active = e.target.checked;
         const panel = document.getElementById('mitigation-inputs-panel');
         if (panel) {
@@ -3221,63 +3169,52 @@ function initEvents() {
         }
         validateAndDraw();
     });
-    safeBind('mitigation-h-key', 'change', (e) => { state.params.h_key = parseFloat(e.target.value) || 0; validateAndDraw(); });
-    safeBind('mitigation-n-anchors', 'change', (e) => { state.params.n_anchors = parseInt(e.target.value) || 0; validateAndDraw(); });
-    safeBind('mitigation-d-anchor', 'change', (e) => { state.params.d_anchor = parseFloat(e.target.value) || 25; validateAndDraw(); });
-    safeBind('mitigation-fy-anchor', 'change', (e) => { state.params.fy_anchor = parseFloat(e.target.value) || 415; validateAndDraw(); });
+    document.getElementById('mitigation-h-key').addEventListener('change', (e) => { state.params.h_key = parseFloat(e.target.value) || 0; validateAndDraw(); });
+    document.getElementById('mitigation-n-anchors').addEventListener('change', (e) => { state.params.n_anchors = parseInt(e.target.value) || 0; validateAndDraw(); });
+    document.getElementById('mitigation-d-anchor').addEventListener('change', (e) => { state.params.d_anchor = parseFloat(e.target.value) || 25; validateAndDraw(); });
+    document.getElementById('mitigation-fy-anchor').addEventListener('change', (e) => { state.params.fy_anchor = parseFloat(e.target.value) || 415; validateAndDraw(); });
     
-    safeBind('sim-btn-xz', 'click', (e) => {
-        const btnXZ = document.getElementById('sim-btn-xz');
-        const btnYZ = document.getElementById('sim-btn-yz');
-        if (btnXZ) btnXZ.classList.add('active');
-        if (btnYZ) btnYZ.classList.remove('active');
+    document.getElementById('sim-btn-xz').addEventListener('click', (e) => {
+        document.getElementById('sim-btn-xz').classList.add('active');
+        document.getElementById('sim-btn-yz').classList.remove('active');
         state.simPlane = 'xz';
         renderSimulator();
     });
-    safeBind('sim-btn-yz', 'click', (e) => {
-        const btnXZ = document.getElementById('sim-btn-xz');
-        const btnYZ = document.getElementById('sim-btn-yz');
-        if (btnYZ) btnYZ.classList.add('active');
-        if (btnXZ) btnXZ.classList.remove('active');
+    document.getElementById('sim-btn-yz').addEventListener('click', (e) => {
+        document.getElementById('sim-btn-yz').classList.add('active');
+        document.getElementById('sim-btn-xz').classList.remove('active');
         state.simPlane = 'yz';
         renderSimulator();
     });
     
-    safeBind('btn-show-forces', 'click', (e) => {
-        const btnF = document.getElementById('btn-show-forces');
-        const btnC = document.getElementById('btn-show-combinations');
-        if (btnF) btnF.classList.add('active');
-        if (btnC) btnC.classList.remove('active');
+    document.getElementById('btn-show-forces').addEventListener('click', (e) => {
+        document.getElementById('btn-show-forces').classList.add('active');
+        document.getElementById('btn-show-combinations').classList.remove('active');
         renderForcesTable();
     });
-    safeBind('btn-show-combinations', 'click', (e) => {
-        const btnF = document.getElementById('btn-show-forces');
-        const btnC = document.getElementById('btn-show-combinations');
-        if (btnC) btnC.classList.add('active');
-        if (btnF) btnF.classList.remove('active');
+    document.getElementById('btn-show-combinations').addEventListener('click', (e) => {
+        document.getElementById('btn-show-combinations').classList.add('active');
+        document.getElementById('btn-show-forces').classList.remove('active');
         renderCaseCombinationsTable();
     });
     
     // Project Manager Buttons
-    safeBind('btn-save-project', 'click', () => {
-        const nameInput = document.getElementById('project-name-input');
-        const name = nameInput ? nameInput.value.trim() : '';
+    document.getElementById('btn-save-project').addEventListener('click', () => {
+        const name = document.getElementById('project-name-input').value.trim();
         saveActiveProject(name);
     });
     
-    safeBind('btn-quick-save', 'click', () => {
-        const nameInput = document.getElementById('project-name-input');
-        const name = nameInput ? nameInput.value.trim() : '';
+    document.getElementById('btn-quick-save').addEventListener('click', () => {
+        const name = document.getElementById('project-name-input').value.trim();
         saveActiveProject(name);
     });
     
-    safeBind('project-load-select', 'change', (e) => {
+    document.getElementById('project-load-select').addEventListener('change', (e) => {
         loadProjectByName(e.target.value);
     });
     
-    safeBind('btn-export-project', 'click', () => {
-        const nameInput = document.getElementById('project-name-input');
-        const name = (nameInput ? nameInput.value.trim() : '') || 'Anchor_Block_Project';
+    document.getElementById('btn-export-project').addEventListener('click', () => {
+        const name = document.getElementById('project-name-input').value.trim() || 'Anchor_Block_Project';
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
             coordinates: state.coordinates,
             params: state.params
@@ -3290,12 +3227,11 @@ function initEvents() {
         downloadAnchor.remove();
     });
     
-    safeBind('btn-import-project-trigger', 'click', () => {
-        const fileInput = document.getElementById('btn-import-project-file');
-        if (fileInput) fileInput.click();
+    document.getElementById('btn-import-project-trigger').addEventListener('click', () => {
+        document.getElementById('btn-import-project-file').click();
     });
     
-    safeBind('btn-import-project-file', 'change', (e) => {
+    document.getElementById('btn-import-project-file').addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
         
@@ -3308,10 +3244,8 @@ function initEvents() {
                     state.params = imported.params;
                     
                     const name = file.name.replace(/\.[^/.]+$/, "").replace(/_/g, " ");
-                    const nameInput = document.getElementById('project-name-input');
-                    if (nameInput) nameInput.value = name;
-                    const label = document.getElementById('current-preset-label');
-                    if (label) label.innerText = `Imported Project: ${name}`;
+                    document.getElementById('project-name-input').value = name;
+                    document.getElementById('current-preset-label').innerText = `Imported Project: ${name}`;
                     
                     updateUIFieldsFromState();
                     validateAndDraw();
@@ -3327,21 +3261,16 @@ function initEvents() {
     });
     
     // Design report modal triggers
-    safeBind('btn-print-report', 'click', () => {
+    document.getElementById('btn-print-report').addEventListener('click', () => {
         openReportModal();
     });
     
-    safeBind('close-report-modal', 'click', () => {
-        closeReportModal();
-    });
-    
-    safeBind('btn-cancel-print', 'click', () => {
-        closeReportModal();
-    });
-    
-    safeBind('btn-confirm-print', 'click', () => {
-        window.print();
-    });
+    const closeBtn = document.getElementById('close-report-modal');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            closeReportModal();
+        });
+    }
     
     const cancelPrintBtn = document.getElementById('btn-cancel-print');
     if (cancelPrintBtn) {
@@ -3356,7 +3285,6 @@ function initEvents() {
             window.print();
         });
     }
-}
 
     // Global print event listeners to populate isolated print container
     window.addEventListener('beforeprint', () => {
@@ -4226,6 +4154,22 @@ function tryRestoreLastState() {
 function migrateCoordinates(c) {
     if (!c) return;
     
+    if (!c.xyCoords || !Array.isArray(c.xyCoords) || c.xyCoords.length === 0) {
+        c.xyCoords = [ {x:0, y:0}, {x:3, y:0}, {x:3, y:4}, {x:0, y:4} ];
+    }
+    if (!c.xzCoords || !Array.isArray(c.xzCoords) || c.xzCoords.length === 0) {
+        c.xzCoords = [ {x:0, z:0}, {x:6.17, z:0}, {x:6.17, z:3}, {x:0, z:3.533} ];
+    }
+    if (!c.yzCoords || !Array.isArray(c.yzCoords) || c.yzCoords.length === 0) {
+        c.yzCoords = [ {y:0, z:0}, {y:4, z:0}, {y:4, z:3}, {y:0, z:3} ];
+    }
+    if (!c.pipeXY || !Array.isArray(c.pipeXY) || c.pipeXY.length === 0) {
+        c.pipeXY = [ {x:0, y:2}, {x:3, y:2}, {x:6.17, y:2} ];
+    }
+    if (!c.pipeCenterYZ) {
+        c.pipeCenterYZ = { y: 2.0, z: 1.5 };
+    }
+    
     // Migrate old pipeZ to pipeXZ array
     if (!c.pipeXZ && c.pipeZ) {
         c.pipeXZ = [
@@ -4234,10 +4178,16 @@ function migrateCoordinates(c) {
             { x: c.pipeXY && c.pipeXY[2] ? c.pipeXY[2].x : 6.17, z: c.pipeZ.z3 !== undefined ? c.pipeZ.z3 : 3.0 }
         ];
         delete c.pipeZ;
+    } else if (!c.pipeXZ || !Array.isArray(c.pipeXZ) || c.pipeXZ.length === 0) {
+        c.pipeXZ = [
+            { x: 0.0, z: 3.533 },
+            { x: 3.0, z: 3.0 },
+            { x: 6.17, z: 3.0 }
+        ];
     }
     
     // Ensure groundCoords exists
-    if (!c.groundCoords) {
+    if (!c.groundCoords || !Array.isArray(c.groundCoords) || c.groundCoords.length === 0) {
         c.groundCoords = [
             { x: 0.0, z: 4.5 },
             { x: c.pipeXZ && c.pipeXZ[2] ? c.pipeXZ[2].x : 6.17, z: 4.0 }
@@ -4247,6 +4197,8 @@ function migrateCoordinates(c) {
     // Ensure cutLineCoords exists
     if (!c.cutLineCoords && c.pipeXY) {
         c.cutLineCoords = JSON.parse(JSON.stringify(c.pipeXY));
+    } else if (!c.cutLineCoords || !Array.isArray(c.cutLineCoords) || c.cutLineCoords.length === 0) {
+        c.cutLineCoords = [ {x:0, y:2}, {x:3, y:2}, {x:6.17, y:2} ];
     }
 }
 
