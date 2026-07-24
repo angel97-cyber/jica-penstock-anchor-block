@@ -3855,10 +3855,7 @@ function generatePrintReportHtml() {
                             <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #cbd5e1; color: #1e293b;">
                                 <strong>3D Components:</strong><br>
                                 Upstream F: Fx = F&middot;cos(&delta;) = <strong>${f.F.x.toFixed(3)} ton</strong> | Fy = <strong>0.000 ton</strong> | Fz = -F&middot;sin(&delta;) = <strong>${f.F.z.toFixed(3)} ton</strong><br>
-                                Downstream F': Fx = F'&middot;cos(&delta;')&middot;cos(&theta;) = <strong>${f.F_prime.x.toFixed(3)} ton</strong> | Fy = -F'&middot;cos(&delta;')&middot;sin(&theta;) = <strong>${f.F_prime.z.toFixed(3)} ton</strong> | Fz = F'&middot;sin(&delta;') = <strong>${f.F_prime.z.toFixed(3)} ton</strong>
-                            </div>
-                        </div>
-                    </div>ng>${f.F_prime.y.toFixed(3)} ton</strong> | Fz = -F'&middot;sin(&delta;') = <strong>${f.F_prime.z.toFixed(3)} ton</strong>
+                                Downstream F': Fx = F'&middot;cos(&delta;')&middot;cos(&theta;) = <strong>${f.F_prime.x.toFixed(3)} ton</strong> | Fy = -F'&middot;cos(&delta;')&middot;sin(&theta;) = <strong>${f.F_prime.y.toFixed(3)} ton</strong> | Fz = -F'&middot;sin(&delta;') = <strong>${f.F_prime.z.toFixed(3)} ton</strong>
                             </div>
                         </div>
                     </div>
