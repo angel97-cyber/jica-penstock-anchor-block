@@ -444,9 +444,9 @@ function calculateStability() {
     const W_val = 0.5 * (w + s) * p.l * Math.cos(delta_val);
     const W_prime_val = 0.5 * (w + s_prime) * p.l_prime * Math.cos(delta_prime_val);
     
-    const W_vec = { x: -W_val * Math.sin(delta_val), y: 0.0, z: -W_val * Math.cos(delta_val) };
+    const W_vec = { x: W_val * Math.sin(delta_val), y: 0.0, z: -W_val * Math.cos(delta_val) };
     const W_prime_vec = {
-        x: -W_prime_val * Math.sin(delta_prime_val) * Math.cos(theta_val),
+        x: W_prime_val * Math.sin(delta_prime_val) * Math.cos(theta_val),
         y: -W_prime_val * Math.sin(delta_prime_val) * Math.sin(theta_val),
         z: -W_prime_val * Math.cos(delta_prime_val)
     };
@@ -474,21 +474,21 @@ function calculateStability() {
         z: -P2_prime_val * Math.sin(delta_prime_val)
     };
     
-    // Rule 4: Pv = 2 * (v^2/g) * A * sin(phi/2) without abs
+    // Rule 4: Pv = 2 * (v^2/g) * A * sin(phi/2) without abs | Vertical Pv Fx = -Pv*sin(phi/2)
     const Pv_val = 2 * (v_water ** 2) / g * A_pipe * Math.sin(phi_val / 2.0) * gamma_w;
     const Ph_val = 2 * (v_water ** 2) / g * A_pipe * Math.sin(theta_val / 2.0) * gamma_w;
     
-    const Pv_vec = { x: Pv_val * Math.sin(phi_val / 2.0), y: 0.0, z: Pv_val * Math.cos(phi_val / 2.0) };
+    const Pv_vec = { x: -Pv_val * Math.sin(phi_val / 2.0), y: 0.0, z: Pv_val * Math.cos(phi_val / 2.0) };
     const Ph_vec = { x: Ph_val * Math.sin(theta_val / 2.0), y: Ph_val * Math.cos(theta_val / 2.0), z: 0.0 };
     
     const P3_val = p.He * Math.PI * p.D * p.t * gamma_w;
     const P3_prime_val = p.He_prime * Math.PI * p.D * p.t_prime * gamma_w;
     
-    // Rule 5: Upstream P3: Fz = P3*sin(delta) | Downstream P3': Fx = P3'*cos(delta')*cos(theta)
+    // Rule 5: Upstream P3: Fz = P3*sin(delta) | Downstream P3': Fx = P3'*cos(delta')*cos(theta), Fy = -P3'*cos(delta')*sin(theta)
     const P3_vec = { x: P3_val * Math.cos(delta_val), y: 0.0, z: P3_val * Math.sin(delta_val) };
     const P3_prime_vec = {
         x: P3_prime_val * Math.cos(delta_prime_val) * Math.cos(theta_val),
-        y: P3_prime_val * Math.cos(delta_prime_val) * Math.sin(theta_val),
+        y: -P3_prime_val * Math.cos(delta_prime_val) * Math.sin(theta_val),
         z: P3_prime_val * Math.sin(delta_prime_val)
     };
     
@@ -3809,7 +3809,7 @@ function generatePrintReportHtml() {
                             <div><strong>Substitution:</strong> Ph = 2 &times; (${v_water.toFixed(3)}&sup2;/9.80665) &times; ${A_pipe.toFixed(3)} &times; sin(${p.theta.toFixed(2)}&deg;/2) = <strong>${Ph_val.toFixed(3)} ton</strong></div>
                             <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #cbd5e1; color: #1e293b;">
                                 <strong>3D Components:</strong><br>
-                                Vertical Pv: Fx = Pv&middot;sin(&phi;/2) = <strong>${f.Pv.x.toFixed(3)} ton</strong> | Fy = <strong>0.000 ton</strong> | Fz = Pv&middot;cos(&phi;/2) = <strong>${f.Pv.z.toFixed(3)} ton</strong><br>
+                                Vertical Pv: Fx = -Pv&middot;sin(&phi;/2) = <strong>${f.Pv.x.toFixed(3)} ton</strong> | Fy = <strong>0.000 ton</strong> | Fz = Pv&middot;cos(&phi;/2) = <strong>${f.Pv.z.toFixed(3)} ton</strong><br>
                                 Horizontal Ph: Fx = Ph&middot;sin(&theta;/2) = <strong>${f.Ph.x.toFixed(3)} ton</strong> | Fy = Ph&middot;cos(&theta;/2) = <strong>${f.Ph.y.toFixed(3)} ton</strong> | Fz = <strong>0.000 ton</strong>
                             </div>
                         </div>
